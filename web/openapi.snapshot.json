@@ -2,381 +2,99 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Rustify API",
-    "description": "Hand-written snapshot of Contract C5 (REST surface) until rustify-server generates the real openapi.json. Field names follow C6 (snake_case, uuid external ids). Replace via `npm run gen:api` after Track F merges.",
+    "description": "",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    },
     "version": "0.1.0"
   },
-  "servers": [{ "url": "/api/v1" }],
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
   "paths": {
-    "/auth/login": {
-      "post": {
-        "operationId": "login",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Logged in; sets session cookie",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/LoginResponse" } }
-            }
-          },
-          "401": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/auth/logout": {
-      "post": {
-        "operationId": "logout",
-        "responses": { "204": { "description": "Logged out" } }
-      }
-    },
-    "/auth/me": {
+    "/api-tokens": {
       "get": {
-        "operationId": "me",
+        "tags": [
+          "api-tokens"
+        ],
+        "operationId": "list_tokens",
         "responses": {
           "200": {
-            "description": "Current user",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/User" } }
-            }
-          },
-          "401": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/private-keys": {
-      "get": {
-        "operationId": "listPrivateKeys",
-        "responses": {
-          "200": {
-            "description": "Private keys",
+            "description": "List of API tokens",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PrivateKey" } }
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiTokenDto"
+                  }
+                }
               }
             }
           }
         }
       },
       "post": {
-        "operationId": "createPrivateKey",
+        "tags": [
+          "api-tokens"
+        ],
+        "operationId": "create_token",
         "requestBody": {
-          "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/PrivateKeyCreate" } }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PrivateKey" } }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiTokenCreate"
+              }
             }
           },
-          "422": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/private-keys/generate": {
-      "post": {
-        "operationId": "generatePrivateKey",
-        "description": "Generates an ed25519 key pair server-side; the private key stays server-side, public key returned.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/PrivateKeyGenerate" } }
-          }
+          "required": true
         },
         "responses": {
           "201": {
-            "description": "Generated",
+            "description": "Token created (shown once)",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PrivateKey" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiTokenCreated"
+                }
+              }
             }
           }
         }
       }
     },
-    "/private-keys/{uuid}": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "get": {
-        "operationId": "getPrivateKey",
-        "responses": {
-          "200": {
-            "description": "Private key",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PrivateKey" } }
-            }
-          },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      },
-      "patch": {
-        "operationId": "updatePrivateKey",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/PrivateKeyUpdate" } }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/PrivateKey" } }
-            }
-          },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      },
+    "/api-tokens/{uuid}": {
       "delete": {
-        "operationId": "deletePrivateKey",
+        "tags": [
+          "api-tokens"
+        ],
+        "operationId": "delete_token",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "API token uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "204": { "description": "Deleted" },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/servers": {
-      "get": {
-        "operationId": "listServers",
-        "responses": {
-          "200": {
-            "description": "Servers",
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Server" } }
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
               }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "createServer",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ServerCreate" } }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Server" } }
-            }
-          },
-          "422": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/servers/{uuid}": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "get": {
-        "operationId": "getServer",
-        "responses": {
-          "200": {
-            "description": "Server",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Server" } }
-            }
-          },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      },
-      "patch": {
-        "operationId": "updateServer",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ServerUpdate" } }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Server" } }
-            }
-          },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      },
-      "delete": {
-        "operationId": "deleteServer",
-        "responses": {
-          "204": { "description": "Deleted" },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/servers/{uuid}/validate": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "post": {
-        "operationId": "validateServer",
-        "description": "Starts async validation; output streams on WS channel `server:<uuid>`.",
-        "responses": {
-          "202": {
-            "description": "Validation started",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ValidateResponse" } }
-            }
-          }
-        }
-      }
-    },
-    "/servers/{uuid}/proxy": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "get": {
-        "operationId": "getServerProxy",
-        "responses": {
-          "200": {
-            "description": "Proxy config",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ProxyConfig" } }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "updateServerProxy",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ProxyConfigUpdate" } }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Saved",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ProxyConfig" } }
-            }
-          }
-        }
-      }
-    },
-    "/servers/{uuid}/proxy/start": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "post": {
-        "operationId": "startServerProxy",
-        "responses": { "202": { "description": "Proxy start queued" } }
-      }
-    },
-    "/servers/{uuid}/proxy/stop": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "post": {
-        "operationId": "stopServerProxy",
-        "responses": { "202": { "description": "Proxy stop queued" } }
-      }
-    },
-    "/servers/{uuid}/proxy/restart": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "post": {
-        "operationId": "restartServerProxy",
-        "responses": { "202": { "description": "Proxy restart queued" } }
-      }
-    },
-    "/projects": {
-      "get": {
-        "operationId": "listProjects",
-        "responses": {
-          "200": {
-            "description": "Projects",
-            "content": {
-              "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "createProject",
-        "description": "Auto-creates a `production` environment.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ProjectCreate" } }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Project" } }
-            }
-          }
-        }
-      }
-    },
-    "/projects/{uuid}": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "get": {
-        "operationId": "getProject",
-        "responses": {
-          "200": {
-            "description": "Project with environments",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Project" } }
-            }
-          },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      },
-      "patch": {
-        "operationId": "updateProject",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ProjectUpdate" } }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Project" } }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deleteProject",
-        "responses": { "204": { "description": "Deleted" } }
-      }
-    },
-    "/projects/{uuid}/environments": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "get": {
-        "operationId": "listEnvironments",
-        "responses": {
-          "200": {
-            "description": "Environments",
-            "content": {
-              "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Environment" } }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "createEnvironment",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/EnvironmentCreate" } }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Environment" } }
             }
           }
         }
@@ -384,204 +102,579 @@
     },
     "/applications": {
       "get": {
-        "operationId": "listApplications",
-        "parameters": [
-          {
-            "name": "project_uuid",
-            "in": "query",
-            "required": false,
-            "schema": { "type": "string" }
-          },
-          {
-            "name": "environment_uuid",
-            "in": "query",
-            "required": false,
-            "schema": { "type": "string" }
-          }
+        "tags": [
+          "applications"
         ],
+        "operationId": "list_applications",
         "responses": {
           "200": {
-            "description": "Applications",
+            "description": "List of applications",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Application" } }
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApplicationDto"
+                  }
+                }
               }
             }
           }
         }
       },
       "post": {
-        "operationId": "createApplication",
+        "tags": [
+          "applications"
+        ],
+        "operationId": "create_application",
         "requestBody": {
-          "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ApplicationCreate" } }
-          }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationCreate"
+              }
+            }
+          },
+          "required": true
         },
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Application created",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Application" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              }
             }
           },
-          "422": { "$ref": "#/components/responses/Error" }
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/applications/{uuid}": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
       "get": {
-        "operationId": "getApplication",
+        "tags": [
+          "applications"
+        ],
+        "operationId": "get_application",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Application",
+            "description": "The application",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Application" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              }
             }
           },
-          "404": { "$ref": "#/components/responses/Error" }
-        }
-      },
-      "patch": {
-        "operationId": "updateApplication",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ApplicationUpdate" } }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated",
+          "404": {
+            "description": "Not found",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Application" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
             }
           }
         }
       },
       "delete": {
-        "operationId": "deleteApplication",
-        "responses": { "204": { "description": "Deleted" } }
+        "tags": [
+          "applications"
+        ],
+        "operationId": "delete_application",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "applications"
+        ],
+        "operationId": "update_application",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated application",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/applications/{uuid}/deploy": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
       "post": {
-        "operationId": "deployApplication",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/DeployRequest" } }
+        "tags": [
+          "applications"
+        ],
+        "operationId": "deploy",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeployRequest"
+              }
+            }
+          },
+          "required": true
         },
         "responses": {
           "202": {
             "description": "Deployment queued",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/DeployResponse" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeployResponse"
+                }
+              }
             }
           }
         }
       }
     },
-    "/applications/{uuid}/stop": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "post": {
-        "operationId": "stopApplication",
-        "responses": { "202": { "description": "Stop queued" } }
-      }
-    },
-    "/applications/{uuid}/restart": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "post": {
-        "operationId": "restartApplication",
-        "responses": { "202": { "description": "Restart queued" } }
-      }
-    },
     "/applications/{uuid}/envs": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
       "get": {
-        "operationId": "listEnvVars",
+        "tags": [
+          "applications"
+        ],
+        "operationId": "list_envs",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Environment variables",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/EnvVar" } }
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvVarDto"
+                  }
+                }
               }
             }
           }
         }
       },
       "post": {
-        "operationId": "createEnvVar",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/EnvVarCreate" } }
+        "tags": [
+          "applications"
+        ],
+        "operationId": "create_env",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvVarCreate"
+              }
+            }
+          },
+          "required": true
         },
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Env var upserted",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/EnvVar" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvVarDto"
+                }
+              }
             }
-          },
-          "422": { "$ref": "#/components/responses/Error" }
+          }
         }
       }
     },
     "/applications/{uuid}/envs/{env_uuid}": {
-      "parameters": [
-        { "$ref": "#/components/parameters/Uuid" },
-        {
-          "name": "env_uuid",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string" }
-        }
-      ],
-      "patch": {
-        "operationId": "updateEnvVar",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/EnvVarUpdate" } }
+      "delete": {
+        "tags": [
+          "applications"
+        ],
+        "operationId": "delete_env",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "env_uuid",
+            "in": "path",
+            "description": "Env var uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
-        },
+        ],
         "responses": {
-          "200": {
-            "description": "Updated",
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/EnvVar" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
             }
           }
         }
       },
-      "delete": {
-        "operationId": "deleteEnvVar",
-        "responses": { "204": { "description": "Deleted" } }
+      "patch": {
+        "tags": [
+          "applications"
+        ],
+        "operationId": "update_env",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "env_uuid",
+            "in": "path",
+            "description": "Env var uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvVarUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated env var",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvVarDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/applications/{uuid}/logs": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
       "get": {
-        "operationId": "getApplicationLogs",
+        "tags": [
+          "applications"
+        ],
+        "operationId": "logs",
         "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "lines",
             "in": "query",
+            "description": "Tail this many lines (default 100)",
             "required": false,
-            "schema": { "type": "integer", "default": 100 }
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Container logs (docker logs -n)",
+            "description": "Container logs",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ContainerLogs" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContainerLogs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/applications/{uuid}/restart": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "operationId": "restart",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Restart enqueued"
+          }
+        }
+      }
+    },
+    "/applications/{uuid}/stop": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "operationId": "stop",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Stop enqueued"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Logged in; session cookie set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Logged out"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "operationId": "me",
+        "responses": {
+          "200": {
+            "description": "The authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
             }
           }
         }
@@ -589,21 +682,42 @@
     },
     "/deployments": {
       "get": {
-        "operationId": "listDeployments",
+        "tags": [
+          "deployments"
+        ],
+        "operationId": "list_deployments",
         "parameters": [
           {
             "name": "application_uuid",
             "in": "query",
-            "required": false,
-            "schema": { "type": "string" }
+            "description": "Filter by application uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Deployments",
+            "description": "Deployments for the application",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Deployment" } }
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeploymentDto"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Missing application_uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
               }
             }
           }
@@ -611,108 +725,968 @@
       }
     },
     "/deployments/{uuid}": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
       "get": {
-        "operationId": "getDeployment",
+        "tags": [
+          "deployments"
+        ],
+        "operationId": "get_deployment",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Deployment uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Deployment incl. logs[] (C3 LogLine)",
+            "description": "Deployment with logs",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentDetail" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeploymentDetailDto"
+                }
+              }
             }
           },
-          "404": { "$ref": "#/components/responses/Error" }
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/deployments/{uuid}/cancel": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
       "post": {
-        "operationId": "cancelDeployment",
-        "responses": {
-          "202": { "description": "Cancel requested" },
-          "409": { "$ref": "#/components/responses/Error" }
-        }
-      }
-    },
-    "/settings": {
-      "get": {
-        "operationId": "getSettings",
-        "responses": {
-          "200": {
-            "description": "Instance settings",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/InstanceSettings" } }
+        "tags": [
+          "deployments"
+        ],
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Deployment uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
-        }
-      },
-      "patch": {
-        "operationId": "updateSettings",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/InstanceSettingsUpdate" } }
-          }
-        },
+        ],
         "responses": {
-          "200": {
-            "description": "Updated",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/InstanceSettings" } }
-            }
-          }
-        }
-      }
-    },
-    "/api-tokens": {
-      "get": {
-        "operationId": "listApiTokens",
-        "responses": {
-          "200": {
-            "description": "API tokens (no secrets)",
+          "202": {
+            "description": "Cancellation requested"
+          },
+          "404": {
+            "description": "Not found",
             "content": {
               "application/json": {
-                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ApiToken" } }
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Deployment is not cancellable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Service is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/private-keys": {
+      "get": {
+        "tags": [
+          "private-keys"
+        ],
+        "operationId": "list_keys",
+        "responses": {
+          "200": {
+            "description": "List of private keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrivateKeyDto"
+                  }
+                }
               }
             }
           }
         }
       },
       "post": {
-        "operationId": "createApiToken",
+        "tags": [
+          "private-keys"
+        ],
+        "operationId": "create_key",
         "requestBody": {
-          "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/ApiTokenCreate" } }
-          }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateKeyCreate"
+              }
+            }
+          },
+          "required": true
         },
         "responses": {
           "201": {
-            "description": "Created; `token` is shown exactly once",
+            "description": "Key created",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ApiTokenCreated" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateKeyDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid key material",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
             }
           }
         }
       }
     },
-    "/api-tokens/{uuid}": {
-      "parameters": [{ "$ref": "#/components/parameters/Uuid" }],
-      "delete": {
-        "operationId": "deleteApiToken",
-        "responses": { "204": { "description": "Deleted" } }
+    "/private-keys/generate": {
+      "post": {
+        "tags": [
+          "private-keys"
+        ],
+        "operationId": "generate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateKeyGenerate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "ed25519 key generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateKeyDto"
+                }
+              }
+            }
+          }
+        }
       }
     },
-    "/health": {
+    "/private-keys/{uuid}": {
       "get": {
-        "operationId": "health",
-        "security": [],
+        "tags": [
+          "private-keys"
+        ],
+        "operationId": "get_key",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Private key uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Liveness",
+            "description": "The key",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Health" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateKeyDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "private-keys"
+        ],
+        "operationId": "delete_key",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Private key uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "private-keys"
+        ],
+        "operationId": "update_key",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Private key uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateKeyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateKeyDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "list_projects",
+        "responses": {
+          "200": {
+            "description": "List of projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "create_project",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Project created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{uuid}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "get_project",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Project uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "delete_project",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Project uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "update_project",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Project uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{uuid}/environments": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "list_environments",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Project uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Environments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvironmentDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "create_environment",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Project uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvironmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Environment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/servers": {
+      "get": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "list_servers",
+        "responses": {
+          "200": {
+            "description": "List of servers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ServerDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "create_server",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Server created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/servers/{uuid}": {
+      "get": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "get_server",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "delete_server",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "update_server",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/servers/{uuid}/proxy": {
+      "get": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "get_proxy",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Proxy config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProxyConfig"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "update_proxy",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProxyConfigUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Saved proxy config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProxyConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/servers/{uuid}/proxy/restart": {
+      "post": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "proxy_restart",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Proxy restart enqueued"
+          }
+        }
+      }
+    },
+    "/servers/{uuid}/proxy/start": {
+      "post": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "proxy_start",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Proxy start enqueued"
+          }
+        }
+      }
+    },
+    "/servers/{uuid}/proxy/stop": {
+      "post": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "proxy_stop",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Proxy stop enqueued"
+          }
+        }
+      }
+    },
+    "/servers/{uuid}/validate": {
+      "post": {
+        "tags": [
+          "servers"
+        ],
+        "operationId": "validate",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "Server uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Validation enqueued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "operationId": "get_settings",
+        "responses": {
+          "200": {
+            "description": "Instance settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceSettingsDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "settings"
+        ],
+        "operationId": "update_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstanceSettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceSettingsDto"
+                }
+              }
             }
           }
         }
@@ -720,434 +1694,1249 @@
     }
   },
   "components": {
-    "parameters": {
-      "Uuid": {
-        "name": "uuid",
-        "in": "path",
-        "required": true,
-        "schema": { "type": "string" }
-      }
-    },
-    "responses": {
-      "Error": {
-        "description": "Error envelope",
-        "content": {
-          "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorBody" } }
-        }
-      }
-    },
     "schemas": {
       "ApiErrorBody": {
         "type": "object",
-        "required": ["code", "message"],
-        "properties": {
-          "code": { "type": "string" },
-          "message": { "type": "string" }
-        }
-      },
-      "Health": {
-        "type": "object",
-        "required": ["status"],
-        "properties": { "status": { "type": "string", "enum": ["ok"] } }
-      },
-      "LoginRequest": {
-        "type": "object",
-        "required": ["email", "password"],
-        "properties": {
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string" }
-        }
-      },
-      "LoginResponse": {
-        "type": "object",
-        "required": ["user"],
-        "properties": { "user": { "$ref": "#/components/schemas/User" } }
-      },
-      "User": {
-        "type": "object",
-        "required": ["id", "email", "name"],
-        "properties": {
-          "id": { "type": "string" },
-          "email": { "type": "string" },
-          "name": { "type": "string" }
-        }
-      },
-      "PrivateKey": {
-        "type": "object",
-        "required": ["uuid", "name", "public_key", "created_at"],
-        "properties": {
-          "uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "public_key": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "PrivateKeyCreate": {
-        "type": "object",
-        "required": ["name", "private_key"],
-        "properties": {
-          "name": { "type": "string" },
-          "private_key": { "type": "string", "description": "write-only" }
-        }
-      },
-      "PrivateKeyUpdate": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "private_key": { "type": "string", "description": "write-only" }
-        }
-      },
-      "PrivateKeyGenerate": {
-        "type": "object",
-        "required": ["name"],
-        "properties": { "name": { "type": "string" } }
-      },
-      "Server": {
-        "type": "object",
-        "required": ["uuid", "name", "ip", "port", "user", "private_key_uuid", "reachable", "usable", "created_at"],
-        "properties": {
-          "uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "ip": { "type": "string" },
-          "port": { "type": "integer" },
-          "user": { "type": "string" },
-          "private_key_uuid": { "type": "string" },
-          "reachable": { "type": "boolean" },
-          "usable": { "type": "boolean" },
-          "validation_logs": { "type": ["string", "null"] },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "ServerCreate": {
-        "type": "object",
-        "required": ["name", "ip", "private_key_uuid"],
-        "properties": {
-          "name": { "type": "string" },
-          "ip": { "type": "string" },
-          "port": { "type": "integer", "default": 22 },
-          "user": { "type": "string", "default": "root" },
-          "private_key_uuid": { "type": "string" }
-        }
-      },
-      "ServerUpdate": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "ip": { "type": "string" },
-          "port": { "type": "integer" },
-          "user": { "type": "string" },
-          "private_key_uuid": { "type": "string" }
-        }
-      },
-      "ValidateResponse": {
-        "type": "object",
-        "required": ["job_uuid"],
-        "properties": { "job_uuid": { "type": "string" } }
-      },
-      "ProxyConfig": {
-        "type": "object",
-        "required": ["proxy_type", "proxy_status"],
-        "properties": {
-          "proxy_type": { "type": "string" },
-          "proxy_status": { "type": "string" },
-          "proxy_custom_config": { "type": ["string", "null"] }
-        }
-      },
-      "ProxyConfigUpdate": {
-        "type": "object",
-        "properties": {
-          "proxy_custom_config": { "type": ["string", "null"] }
-        }
-      },
-      "Project": {
-        "type": "object",
-        "required": ["uuid", "name", "created_at"],
-        "properties": {
-          "uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "description": { "type": ["string", "null"] },
-          "environments": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/Environment" }
-          },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "ProjectCreate": {
-        "type": "object",
-        "required": ["name"],
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": ["string", "null"] }
-        }
-      },
-      "ProjectUpdate": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": ["string", "null"] }
-        }
-      },
-      "Environment": {
-        "type": "object",
-        "required": ["uuid", "name"],
-        "properties": {
-          "uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "EnvironmentCreate": {
-        "type": "object",
-        "required": ["name"],
-        "properties": { "name": { "type": "string" } }
-      },
-      "BuildPack": {
-        "type": "string",
-        "enum": ["nixpacks", "dockerfile", "static", "docker_image", "docker_compose"]
-      },
-      "Application": {
-        "type": "object",
+        "description": "Error envelope returned by every failing endpoint (contract C5).",
         "required": [
-          "uuid", "name", "environment_uuid", "server_uuid", "git_repository", "git_branch",
-          "git_commit_sha", "build_pack", "base_directory", "ports_exposes", "status", "created_at"
+          "code",
+          "message"
         ],
         "properties": {
-          "uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "fqdn": { "type": ["string", "null"] },
-          "environment_uuid": { "type": "string" },
-          "project_uuid": { "type": "string" },
-          "server_uuid": { "type": "string" },
-          "git_repository": { "type": "string" },
-          "git_branch": { "type": "string" },
-          "git_commit_sha": { "type": "string" },
-          "build_pack": { "$ref": "#/components/schemas/BuildPack" },
-          "static_image": { "type": "string" },
-          "docker_registry_image_name": { "type": ["string", "null"] },
-          "docker_registry_image_tag": { "type": ["string", "null"] },
-          "dockerfile_location": { "type": "string" },
-          "docker_compose_location": { "type": "string" },
-          "base_directory": { "type": "string" },
-          "publish_directory": { "type": ["string", "null"] },
-          "install_command": { "type": ["string", "null"] },
-          "build_command": { "type": ["string", "null"] },
-          "start_command": { "type": ["string", "null"] },
-          "ports_exposes": { "type": "string" },
-          "ports_mappings": { "type": ["string", "null"] },
-          "health_check_enabled": { "type": "boolean" },
-          "health_check_path": { "type": "string" },
-          "health_check_port": { "type": ["string", "null"] },
-          "health_check_host": { "type": "string" },
-          "health_check_method": { "type": "string" },
-          "health_check_return_code": { "type": "integer" },
-          "health_check_interval": { "type": "integer" },
-          "health_check_timeout": { "type": "integer" },
-          "health_check_retries": { "type": "integer" },
-          "health_check_start_period": { "type": "integer" },
-          "limits_memory": { "type": "string" },
-          "limits_cpus": { "type": "string" },
-          "custom_docker_run_options": { "type": ["string", "null"] },
-          "status": { "type": "string" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable error code."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable message."
+          }
+        }
+      },
+      "ApiTokenCreate": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiTokenCreated": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "token"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string",
+            "description": "The plaintext token — shown exactly once."
+          },
+          "uuid": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiTokenDto": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "abilities",
+          "created_at"
+        ],
+        "properties": {
+          "abilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "last_used_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
         }
       },
       "ApplicationCreate": {
         "type": "object",
-        "required": ["project_uuid", "environment_name", "server_uuid", "name", "git_repository"],
+        "required": [
+          "project_uuid",
+          "environment_name",
+          "server_uuid",
+          "name",
+          "git_repository"
+        ],
         "properties": {
-          "project_uuid": { "type": "string" },
-          "environment_name": { "type": "string" },
-          "server_uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "git_repository": { "type": "string" },
-          "git_branch": { "type": "string", "default": "main" },
-          "build_pack": { "$ref": "#/components/schemas/BuildPack" },
-          "ports_exposes": { "type": "string", "default": "80" },
-          "fqdn": { "type": ["string", "null"] },
-          "base_directory": { "type": "string" },
-          "publish_directory": { "type": ["string", "null"] },
-          "dockerfile_location": { "type": "string" },
-          "docker_compose_location": { "type": "string" },
-          "static_image": { "type": "string" },
-          "install_command": { "type": ["string", "null"] },
-          "build_command": { "type": ["string", "null"] },
-          "start_command": { "type": ["string", "null"] }
+          "base_directory": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "build_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "build_pack": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "docker_compose_location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dockerfile_location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "environment_name": {
+            "type": "string"
+          },
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "git_branch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "git_repository": {
+            "type": "string"
+          },
+          "install_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "ports_exposes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "project_uuid": {
+            "type": "string"
+          },
+          "publish_directory": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "server_uuid": {
+            "type": "string"
+          },
+          "start_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "static_image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ApplicationDto": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "environment_uuid",
+          "project_uuid",
+          "server_uuid",
+          "git_repository",
+          "git_branch",
+          "git_commit_sha",
+          "build_pack",
+          "static_image",
+          "dockerfile_location",
+          "docker_compose_location",
+          "base_directory",
+          "ports_exposes",
+          "health_check_enabled",
+          "health_check_path",
+          "health_check_host",
+          "health_check_method",
+          "health_check_return_code",
+          "health_check_interval",
+          "health_check_timeout",
+          "health_check_retries",
+          "health_check_start_period",
+          "limits_memory",
+          "limits_cpus",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "base_directory": {
+            "type": "string"
+          },
+          "build_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "build_pack": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "custom_docker_run_options": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "docker_compose_location": {
+            "type": "string"
+          },
+          "docker_registry_image_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "docker_registry_image_tag": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dockerfile_location": {
+            "type": "string"
+          },
+          "environment_uuid": {
+            "type": "string"
+          },
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "git_branch": {
+            "type": "string"
+          },
+          "git_commit_sha": {
+            "type": "string"
+          },
+          "git_repository": {
+            "type": "string"
+          },
+          "health_check_enabled": {
+            "type": "boolean"
+          },
+          "health_check_host": {
+            "type": "string"
+          },
+          "health_check_interval": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "health_check_method": {
+            "type": "string"
+          },
+          "health_check_path": {
+            "type": "string"
+          },
+          "health_check_port": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "health_check_retries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "health_check_return_code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "health_check_start_period": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "health_check_timeout": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "install_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limits_cpus": {
+            "type": "string"
+          },
+          "limits_memory": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ports_exposes": {
+            "type": "string"
+          },
+          "ports_mappings": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "project_uuid": {
+            "type": "string"
+          },
+          "publish_directory": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "server_uuid": {
+            "type": "string"
+          },
+          "start_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "static_image": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uuid": {
+            "type": "string"
+          }
         }
       },
       "ApplicationUpdate": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "fqdn": { "type": ["string", "null"] },
-          "git_repository": { "type": "string" },
-          "git_branch": { "type": "string" },
-          "git_commit_sha": { "type": "string" },
-          "build_pack": { "$ref": "#/components/schemas/BuildPack" },
-          "static_image": { "type": "string" },
-          "dockerfile_location": { "type": "string" },
-          "docker_compose_location": { "type": "string" },
-          "base_directory": { "type": "string" },
-          "publish_directory": { "type": ["string", "null"] },
-          "install_command": { "type": ["string", "null"] },
-          "build_command": { "type": ["string", "null"] },
-          "start_command": { "type": ["string", "null"] },
-          "ports_exposes": { "type": "string" },
-          "ports_mappings": { "type": ["string", "null"] },
-          "health_check_enabled": { "type": "boolean" },
-          "health_check_path": { "type": "string" },
-          "limits_memory": { "type": "string" },
-          "limits_cpus": { "type": "string" },
-          "custom_docker_run_options": { "type": ["string", "null"] }
-        }
-      },
-      "DeployRequest": {
-        "type": "object",
-        "properties": { "force_rebuild": { "type": "boolean", "default": false } }
-      },
-      "DeployResponse": {
-        "type": "object",
-        "required": ["deployment_uuid"],
-        "properties": { "deployment_uuid": { "type": "string" } }
-      },
-      "EnvVar": {
-        "type": "object",
-        "required": ["uuid", "key", "is_buildtime", "is_literal", "is_shown_once", "created_at"],
-        "properties": {
-          "uuid": { "type": "string" },
-          "key": { "type": "string" },
-          "value": {
-            "type": ["string", "null"],
-            "description": "null once a shown-once variable has been read"
+          "base_directory": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "is_buildtime": { "type": "boolean" },
-          "is_literal": { "type": "boolean" },
-          "is_shown_once": { "type": "boolean" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "updated_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "EnvVarCreate": {
-        "type": "object",
-        "required": ["key", "value"],
-        "properties": {
-          "key": { "type": "string" },
-          "value": { "type": "string" },
-          "is_buildtime": { "type": "boolean", "default": false },
-          "is_literal": { "type": "boolean", "default": false },
-          "is_shown_once": { "type": "boolean", "default": false }
-        }
-      },
-      "EnvVarUpdate": {
-        "type": "object",
-        "properties": {
-          "key": { "type": "string" },
-          "value": { "type": "string" },
-          "is_buildtime": { "type": "boolean" },
-          "is_literal": { "type": "boolean" },
-          "is_shown_once": { "type": "boolean" }
+          "build_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "build_pack": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "custom_docker_run_options": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "docker_compose_location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dockerfile_location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "git_branch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "git_commit_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "git_repository": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "health_check_enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "health_check_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "install_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limits_cpus": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limits_memory": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ports_exposes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ports_mappings": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publish_directory": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "start_command": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "static_image": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       },
       "ContainerLogs": {
         "type": "object",
-        "required": ["logs"],
-        "properties": { "logs": { "type": "string" } }
-      },
-      "DeploymentStatus": {
-        "type": "string",
-        "enum": ["queued", "in_progress", "finished", "failed", "cancelled"]
-      },
-      "Deployment": {
-        "type": "object",
-        "required": ["uuid", "application_uuid", "server_uuid", "status", "force_rebuild", "rollback", "created_at"],
+        "required": [
+          "logs"
+        ],
         "properties": {
-          "uuid": { "type": "string" },
-          "application_uuid": { "type": "string" },
-          "server_uuid": { "type": "string" },
-          "status": { "$ref": "#/components/schemas/DeploymentStatus" },
-          "commit_sha": { "type": ["string", "null"] },
-          "commit_message": { "type": ["string", "null"] },
-          "force_rebuild": { "type": "boolean" },
-          "rollback": { "type": "boolean" },
-          "started_at": { "type": ["string", "null"], "format": "date-time" },
-          "finished_at": { "type": ["string", "null"], "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" }
+          "logs": {
+            "type": "string"
+          }
         }
       },
-      "LogLine": {
+      "DeployRequest": {
         "type": "object",
-        "description": "Contract C3 log line (JSON field `order` maps to DB column `ord`)",
-        "required": ["order", "kind", "content", "hidden", "batch", "timestamp"],
         "properties": {
-          "order": { "type": "integer", "format": "int64" },
-          "kind": { "type": "string", "enum": ["stdout", "stderr", "info"] },
-          "content": { "type": "string" },
-          "hidden": { "type": "boolean" },
-          "batch": { "type": "integer" },
-          "timestamp": { "type": "string", "format": "date-time" }
+          "force_rebuild": {
+            "type": "boolean"
+          }
         }
       },
-      "DeploymentDetail": {
+      "DeployResponse": {
+        "type": "object",
+        "required": [
+          "deployment_uuid"
+        ],
+        "properties": {
+          "deployment_uuid": {
+            "type": "string"
+          }
+        }
+      },
+      "DeploymentDetailDto": {
         "allOf": [
-          { "$ref": "#/components/schemas/Deployment" },
+          {
+            "$ref": "#/components/schemas/DeploymentDto"
+          },
           {
             "type": "object",
-            "required": ["logs"],
+            "required": [
+              "logs"
+            ],
             "properties": {
               "logs": {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/LogLine" }
+                "items": {
+                  "$ref": "#/components/schemas/LogLineDto"
+                }
               }
             }
           }
         ]
       },
-      "InstanceSettings": {
+      "DeploymentDto": {
         "type": "object",
-        "required": ["registration_enabled"],
+        "required": [
+          "uuid",
+          "application_uuid",
+          "server_uuid",
+          "status",
+          "force_rebuild",
+          "rollback",
+          "created_at"
+        ],
         "properties": {
-          "fqdn": { "type": ["string", "null"] },
-          "wildcard_domain": { "type": ["string", "null"] },
-          "registration_enabled": { "type": "boolean" }
+          "application_uuid": {
+            "type": "string"
+          },
+          "commit_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commit_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "force_rebuild": {
+            "type": "boolean"
+          },
+          "rollback": {
+            "type": "boolean"
+          },
+          "server_uuid": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "description": "One of queued/in_progress/finished/failed/cancelled."
+          },
+          "uuid": {
+            "type": "string"
+          }
+        }
+      },
+      "EnvVarCreate": {
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "properties": {
+          "is_buildtime": {
+            "type": "boolean"
+          },
+          "is_literal": {
+            "type": "boolean"
+          },
+          "is_shown_once": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "EnvVarDto": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "key",
+          "is_buildtime",
+          "is_literal",
+          "is_shown_once",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "is_buildtime": {
+            "type": "boolean"
+          },
+          "is_literal": {
+            "type": "boolean"
+          },
+          "is_shown_once": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null once a shown-once variable has been persisted."
+          }
+        }
+      },
+      "EnvVarUpdate": {
+        "type": "object",
+        "properties": {
+          "is_buildtime": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "is_literal": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "is_shown_once": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EnvironmentCreate": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "EnvironmentDto": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Always `\"ok\"`."
+          }
+        }
+      },
+      "InstanceSettingsDto": {
+        "type": "object",
+        "required": [
+          "registration_enabled"
+        ],
+        "properties": {
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registration_enabled": {
+            "type": "boolean"
+          },
+          "wildcard_domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       },
       "InstanceSettingsUpdate": {
         "type": "object",
         "properties": {
-          "fqdn": { "type": ["string", "null"] },
-          "wildcard_domain": { "type": ["string", "null"] },
-          "registration_enabled": { "type": "boolean" }
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registration_enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "wildcard_domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
         }
       },
-      "ApiToken": {
+      "LogLineDto": {
         "type": "object",
-        "required": ["uuid", "name", "abilities", "created_at"],
+        "required": [
+          "order",
+          "kind",
+          "content",
+          "hidden",
+          "batch",
+          "timestamp"
+        ],
         "properties": {
-          "uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "abilities": { "type": "array", "items": { "type": "string" } },
-          "last_used_at": { "type": ["string", "null"], "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" }
+          "batch": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "string"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
-      "ApiTokenCreate": {
+      "LoginRequest": {
         "type": "object",
-        "required": ["name"],
-        "properties": { "name": { "type": "string" } }
-      },
-      "ApiTokenCreated": {
-        "type": "object",
-        "required": ["uuid", "name", "token"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
-          "uuid": { "type": "string" },
-          "name": { "type": "string" },
-          "token": { "type": "string", "description": "shown exactly once" }
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          }
+        }
+      },
+      "PrivateKeyCreate": {
+        "type": "object",
+        "required": [
+          "name",
+          "private_key"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "private_key": {
+            "type": "string",
+            "description": "PEM (OpenSSH) private key; write-only."
+          }
+        }
+      },
+      "PrivateKeyDto": {
+        "type": "object",
+        "description": "A private key as returned by the API (private material elided).",
+        "required": [
+          "uuid",
+          "name",
+          "public_key",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "public_key": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        }
+      },
+      "PrivateKeyGenerate": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "PrivateKeyUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "private_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Replacement PEM private key; write-only."
+          }
+        }
+      },
+      "ProjectCreate": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ProjectDto": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "environments",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "environments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentDto"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        }
+      },
+      "ProjectUpdate": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ProxyConfig": {
+        "type": "object",
+        "required": [
+          "proxy_type",
+          "proxy_status"
+        ],
+        "properties": {
+          "proxy_custom_config": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "proxy_status": {
+            "type": "string"
+          },
+          "proxy_type": {
+            "type": "string"
+          }
+        }
+      },
+      "ProxyConfigUpdate": {
+        "type": "object",
+        "properties": {
+          "proxy_custom_config": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ServerCreate": {
+        "type": "object",
+        "required": [
+          "name",
+          "ip",
+          "private_key_uuid"
+        ],
+        "properties": {
+          "ip": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "port": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "private_key_uuid": {
+            "type": "string"
+          },
+          "user": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ServerDto": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "name",
+          "ip",
+          "port",
+          "user",
+          "private_key_uuid",
+          "reachable",
+          "usable",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "private_key_uuid": {
+            "type": "string"
+          },
+          "reachable": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usable": {
+            "type": "boolean"
+          },
+          "user": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "validation_logs": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ServerUpdate": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "port": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "private_key_uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UserDto": {
+        "type": "object",
+        "description": "A user as returned by the API (contract C5). `id` is the external uuid;\n`team_uuid` is included so the web client can address the `team:<uuid>` WS\nchannel without a second round-trip.",
+        "required": [
+          "id",
+          "email",
+          "name",
+          "team_uuid"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "team_uuid": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidateResponse": {
+        "type": "object",
+        "required": [
+          "job_uuid"
+        ],
+        "properties": {
+          "job_uuid": {
+            "type": "string"
+          }
         }
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness"
+    },
+    {
+      "name": "auth",
+      "description": "Authentication"
+    },
+    {
+      "name": "private-keys",
+      "description": "SSH private keys"
+    },
+    {
+      "name": "servers",
+      "description": "Servers and proxy"
+    },
+    {
+      "name": "projects",
+      "description": "Projects and environments"
+    },
+    {
+      "name": "applications",
+      "description": "Applications, deploys, env vars, logs"
+    },
+    {
+      "name": "deployments",
+      "description": "Deployments"
+    },
+    {
+      "name": "settings",
+      "description": "Instance settings"
+    },
+    {
+      "name": "api-tokens",
+      "description": "API tokens"
+    }
+  ]
 }

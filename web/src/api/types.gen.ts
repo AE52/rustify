@@ -4,6 +4,166 @@
  */
 
 export interface paths {
+    "/api-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_tokens"];
+        put?: never;
+        post: operations["create_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api-tokens/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_token"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_applications"];
+        put?: never;
+        post: operations["create_application"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_application"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_application"];
+        options?: never;
+        head?: never;
+        patch: operations["update_application"];
+        trace?: never;
+    };
+    "/applications/{uuid}/deploy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deploy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{uuid}/envs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_envs"];
+        put?: never;
+        post: operations["create_env"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{uuid}/envs/{env_uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_env"];
+        options?: never;
+        head?: never;
+        patch: operations["update_env"];
+        trace?: never;
+    };
+    "/applications/{uuid}/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{uuid}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{uuid}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -52,378 +212,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/private-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listPrivateKeys"];
-        put?: never;
-        post: operations["createPrivateKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/private-keys/generate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Generates an ed25519 key pair server-side; the private key stays server-side, public key returned. */
-        post: operations["generatePrivateKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/private-keys/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["getPrivateKey"];
-        put?: never;
-        post?: never;
-        delete: operations["deletePrivateKey"];
-        options?: never;
-        head?: never;
-        patch: operations["updatePrivateKey"];
-        trace?: never;
-    };
-    "/servers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listServers"];
-        put?: never;
-        post: operations["createServer"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["getServer"];
-        put?: never;
-        post?: never;
-        delete: operations["deleteServer"];
-        options?: never;
-        head?: never;
-        patch: operations["updateServer"];
-        trace?: never;
-    };
-    "/servers/{uuid}/validate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Starts async validation; output streams on WS channel `server:<uuid>`. */
-        post: operations["validateServer"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{uuid}/proxy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["getServerProxy"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["updateServerProxy"];
-        trace?: never;
-    };
-    "/servers/{uuid}/proxy/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["startServerProxy"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{uuid}/proxy/stop": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["stopServerProxy"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/servers/{uuid}/proxy/restart": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["restartServerProxy"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listProjects"];
-        put?: never;
-        /** @description Auto-creates a `production` environment. */
-        post: operations["createProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["getProject"];
-        put?: never;
-        post?: never;
-        delete: operations["deleteProject"];
-        options?: never;
-        head?: never;
-        patch: operations["updateProject"];
-        trace?: never;
-    };
-    "/projects/{uuid}/environments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["listEnvironments"];
-        put?: never;
-        post: operations["createEnvironment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listApplications"];
-        put?: never;
-        post: operations["createApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["getApplication"];
-        put?: never;
-        post?: never;
-        delete: operations["deleteApplication"];
-        options?: never;
-        head?: never;
-        patch: operations["updateApplication"];
-        trace?: never;
-    };
-    "/applications/{uuid}/deploy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["deployApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications/{uuid}/stop": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["stopApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications/{uuid}/restart": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["restartApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications/{uuid}/envs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["listEnvVars"];
-        put?: never;
-        post: operations["createEnvVar"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/applications/{uuid}/envs/{env_uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-                env_uuid: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteEnvVar"];
-        options?: never;
-        head?: never;
-        patch: operations["updateEnvVar"];
-        trace?: never;
-    };
-    "/applications/{uuid}/logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get: operations["getApplicationLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/deployments": {
         parameters: {
             query?: never;
@@ -431,7 +219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["listDeployments"];
+        get: operations["list_deployments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -444,12 +232,10 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
+            path?: never;
             cookie?: never;
         };
-        get: operations["getDeployment"];
+        get: operations["get_deployment"];
         put?: never;
         post?: never;
         delete?: never;
@@ -462,65 +248,13 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
         put?: never;
-        post: operations["cancelDeployment"];
+        post: operations["cancel"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSettings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["updateSettings"];
-        trace?: never;
-    };
-    "/api-tokens": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listApiTokens"];
-        put?: never;
-        post: operations["createApiToken"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api-tokens/{uuid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteApiToken"];
         options?: never;
         head?: never;
         patch?: never;
@@ -542,17 +276,437 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/private-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_keys"];
+        put?: never;
+        post: operations["create_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/private-keys/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/private-keys/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_key"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_key"];
+        options?: never;
+        head?: never;
+        patch: operations["update_key"];
+        trace?: never;
+    };
+    "/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_projects"];
+        put?: never;
+        post: operations["create_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_project"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_project"];
+        options?: never;
+        head?: never;
+        patch: operations["update_project"];
+        trace?: never;
+    };
+    "/projects/{uuid}/environments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_environments"];
+        put?: never;
+        post: operations["create_environment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_servers"];
+        put?: never;
+        post: operations["create_server"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_server"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_server"];
+        options?: never;
+        head?: never;
+        patch: operations["update_server"];
+        trace?: never;
+    };
+    "/servers/{uuid}/proxy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_proxy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_proxy"];
+        trace?: never;
+    };
+    "/servers/{uuid}/proxy/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["proxy_restart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{uuid}/proxy/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["proxy_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{uuid}/proxy/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["proxy_stop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/servers/{uuid}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_settings"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Error envelope returned by every failing endpoint (contract C5). */
         ApiErrorBody: {
+            /** @description Stable machine-readable error code. */
             code: string;
+            /** @description Human-readable message. */
             message: string;
         };
+        ApiTokenCreate: {
+            name: string;
+        };
+        ApiTokenCreated: {
+            name: string;
+            /** @description The plaintext token — shown exactly once. */
+            token: string;
+            uuid: string;
+        };
+        ApiTokenDto: {
+            abilities: string[];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            last_used_at?: string | null;
+            name: string;
+            uuid: string;
+        };
+        ApplicationCreate: {
+            base_directory?: string | null;
+            build_command?: string | null;
+            build_pack?: string | null;
+            docker_compose_location?: string | null;
+            dockerfile_location?: string | null;
+            environment_name: string;
+            fqdn?: string | null;
+            git_branch?: string | null;
+            git_repository: string;
+            install_command?: string | null;
+            name: string;
+            ports_exposes?: string | null;
+            project_uuid: string;
+            publish_directory?: string | null;
+            server_uuid: string;
+            start_command?: string | null;
+            static_image?: string | null;
+        };
+        ApplicationDto: {
+            base_directory: string;
+            build_command?: string | null;
+            build_pack: string;
+            /** Format: date-time */
+            created_at: string;
+            custom_docker_run_options?: string | null;
+            docker_compose_location: string;
+            docker_registry_image_name?: string | null;
+            docker_registry_image_tag?: string | null;
+            dockerfile_location: string;
+            environment_uuid: string;
+            fqdn?: string | null;
+            git_branch: string;
+            git_commit_sha: string;
+            git_repository: string;
+            health_check_enabled: boolean;
+            health_check_host: string;
+            /** Format: int32 */
+            health_check_interval: number;
+            health_check_method: string;
+            health_check_path: string;
+            health_check_port?: string | null;
+            /** Format: int32 */
+            health_check_retries: number;
+            /** Format: int32 */
+            health_check_return_code: number;
+            /** Format: int32 */
+            health_check_start_period: number;
+            /** Format: int32 */
+            health_check_timeout: number;
+            install_command?: string | null;
+            limits_cpus: string;
+            limits_memory: string;
+            name: string;
+            ports_exposes: string;
+            ports_mappings?: string | null;
+            project_uuid: string;
+            publish_directory?: string | null;
+            server_uuid: string;
+            start_command?: string | null;
+            static_image: string;
+            status: string;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+        };
+        ApplicationUpdate: {
+            base_directory?: string | null;
+            build_command?: string | null;
+            build_pack?: string | null;
+            custom_docker_run_options?: string | null;
+            docker_compose_location?: string | null;
+            dockerfile_location?: string | null;
+            fqdn?: string | null;
+            git_branch?: string | null;
+            git_commit_sha?: string | null;
+            git_repository?: string | null;
+            health_check_enabled?: boolean | null;
+            health_check_path?: string | null;
+            install_command?: string | null;
+            limits_cpus?: string | null;
+            limits_memory?: string | null;
+            name?: string | null;
+            ports_exposes?: string | null;
+            ports_mappings?: string | null;
+            publish_directory?: string | null;
+            start_command?: string | null;
+            static_image?: string | null;
+        };
+        ContainerLogs: {
+            logs: string;
+        };
+        DeployRequest: {
+            force_rebuild?: boolean;
+        };
+        DeployResponse: {
+            deployment_uuid: string;
+        };
+        DeploymentDetailDto: components["schemas"]["DeploymentDto"] & {
+            logs: components["schemas"]["LogLineDto"][];
+        };
+        DeploymentDto: {
+            application_uuid: string;
+            commit_message?: string | null;
+            commit_sha?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            finished_at?: string | null;
+            force_rebuild: boolean;
+            rollback: boolean;
+            server_uuid: string;
+            /** Format: date-time */
+            started_at?: string | null;
+            /** @description One of queued/in_progress/finished/failed/cancelled. */
+            status: string;
+            uuid: string;
+        };
+        EnvVarCreate: {
+            is_buildtime?: boolean;
+            is_literal?: boolean;
+            is_shown_once?: boolean;
+            key: string;
+            value: string;
+        };
+        EnvVarDto: {
+            /** Format: date-time */
+            created_at: string;
+            is_buildtime: boolean;
+            is_literal: boolean;
+            is_shown_once: boolean;
+            key: string;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+            /** @description Null once a shown-once variable has been persisted. */
+            value?: string | null;
+        };
+        EnvVarUpdate: {
+            is_buildtime?: boolean | null;
+            is_literal?: boolean | null;
+            is_shown_once?: boolean | null;
+            key?: string | null;
+            value?: string | null;
+        };
+        EnvironmentCreate: {
+            name: string;
+        };
+        EnvironmentDto: {
+            /** Format: date-time */
+            created_at: string;
+            name: string;
+            uuid: string;
+        };
         Health: {
-            /** @enum {string} */
-            status: "ok";
+            /** @description Always `"ok"`. */
+            status: string;
+        };
+        InstanceSettingsDto: {
+            fqdn?: string | null;
+            registration_enabled: boolean;
+            wildcard_domain?: string | null;
+        };
+        InstanceSettingsUpdate: {
+            fqdn?: string | null;
+            registration_enabled?: boolean | null;
+            wildcard_domain?: string | null;
+        };
+        LogLineDto: {
+            /** Format: int32 */
+            batch: number;
+            content: string;
+            hidden: boolean;
+            kind: string;
+            /** Format: int64 */
+            order: number;
+            /** Format: date-time */
+            timestamp: string;
         };
         LoginRequest: {
             /** Format: email */
@@ -560,314 +714,561 @@ export interface components {
             password: string;
         };
         LoginResponse: {
-            user: components["schemas"]["User"];
-        };
-        User: {
-            id: string;
-            email: string;
-            name: string;
-        };
-        PrivateKey: {
-            uuid: string;
-            name: string;
-            public_key: string;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            updated_at?: string;
+            user: components["schemas"]["UserDto"];
         };
         PrivateKeyCreate: {
             name: string;
-            /** @description write-only */
+            /** @description PEM (OpenSSH) private key; write-only. */
             private_key: string;
         };
-        PrivateKeyUpdate: {
-            name?: string;
-            /** @description write-only */
-            private_key?: string;
+        /** @description A private key as returned by the API (private material elided). */
+        PrivateKeyDto: {
+            /** Format: date-time */
+            created_at: string;
+            name: string;
+            public_key: string;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
         };
         PrivateKeyGenerate: {
             name: string;
         };
-        Server: {
-            uuid: string;
+        PrivateKeyUpdate: {
+            name?: string | null;
+            /** @description Replacement PEM private key; write-only. */
+            private_key?: string | null;
+        };
+        ProjectCreate: {
+            description?: string | null;
             name: string;
-            ip: string;
-            port: number;
-            user: string;
-            private_key_uuid: string;
-            reachable: boolean;
-            usable: boolean;
-            validation_logs?: string | null;
+        };
+        ProjectDto: {
             /** Format: date-time */
             created_at: string;
-            /** Format: date-time */
-            updated_at?: string;
-        };
-        ServerCreate: {
+            description?: string | null;
+            environments: components["schemas"]["EnvironmentDto"][];
             name: string;
-            ip: string;
-            /** @default 22 */
-            port: number;
-            /** @default root */
-            user: string;
-            private_key_uuid: string;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
         };
-        ServerUpdate: {
-            name?: string;
-            ip?: string;
-            port?: number;
-            user?: string;
-            private_key_uuid?: string;
-        };
-        ValidateResponse: {
-            job_uuid: string;
+        ProjectUpdate: {
+            description?: string | null;
+            name?: string | null;
         };
         ProxyConfig: {
-            proxy_type: string;
-            proxy_status: string;
             proxy_custom_config?: string | null;
+            proxy_status: string;
+            proxy_type: string;
         };
         ProxyConfigUpdate: {
             proxy_custom_config?: string | null;
         };
-        Project: {
-            uuid: string;
+        ServerCreate: {
+            ip: string;
             name: string;
-            description?: string | null;
-            environments?: components["schemas"]["Environment"][];
+            /** Format: int32 */
+            port?: number | null;
+            private_key_uuid: string;
+            user?: string | null;
+        };
+        ServerDto: {
             /** Format: date-time */
             created_at: string;
-            /** Format: date-time */
-            updated_at?: string;
-        };
-        ProjectCreate: {
+            ip: string;
             name: string;
-            description?: string | null;
-        };
-        ProjectUpdate: {
-            name?: string;
-            description?: string | null;
-        };
-        Environment: {
+            /** Format: int32 */
+            port: number;
+            private_key_uuid: string;
+            reachable: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            usable: boolean;
+            user: string;
             uuid: string;
+            validation_logs?: string | null;
+        };
+        ServerUpdate: {
+            ip?: string | null;
+            name?: string | null;
+            /** Format: int32 */
+            port?: number | null;
+            private_key_uuid?: string | null;
+            user?: string | null;
+        };
+        /**
+         * @description A user as returned by the API (contract C5). `id` is the external uuid;
+         *     `team_uuid` is included so the web client can address the `team:<uuid>` WS
+         *     channel without a second round-trip.
+         */
+        UserDto: {
+            email: string;
+            id: string;
             name: string;
-            /** Format: date-time */
-            created_at?: string;
+            team_uuid: string;
         };
-        EnvironmentCreate: {
-            name: string;
-        };
-        /** @enum {string} */
-        BuildPack: "nixpacks" | "dockerfile" | "static" | "docker_image" | "docker_compose";
-        Application: {
-            uuid: string;
-            name: string;
-            fqdn?: string | null;
-            environment_uuid: string;
-            project_uuid?: string;
-            server_uuid: string;
-            git_repository: string;
-            git_branch: string;
-            git_commit_sha: string;
-            build_pack: components["schemas"]["BuildPack"];
-            static_image?: string;
-            docker_registry_image_name?: string | null;
-            docker_registry_image_tag?: string | null;
-            dockerfile_location?: string;
-            docker_compose_location?: string;
-            base_directory: string;
-            publish_directory?: string | null;
-            install_command?: string | null;
-            build_command?: string | null;
-            start_command?: string | null;
-            ports_exposes: string;
-            ports_mappings?: string | null;
-            health_check_enabled?: boolean;
-            health_check_path?: string;
-            health_check_port?: string | null;
-            health_check_host?: string;
-            health_check_method?: string;
-            health_check_return_code?: number;
-            health_check_interval?: number;
-            health_check_timeout?: number;
-            health_check_retries?: number;
-            health_check_start_period?: number;
-            limits_memory?: string;
-            limits_cpus?: string;
-            custom_docker_run_options?: string | null;
-            status: string;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            updated_at?: string;
-        };
-        ApplicationCreate: {
-            project_uuid: string;
-            environment_name: string;
-            server_uuid: string;
-            name: string;
-            git_repository: string;
-            /** @default main */
-            git_branch: string;
-            build_pack?: components["schemas"]["BuildPack"];
-            /** @default 80 */
-            ports_exposes: string;
-            fqdn?: string | null;
-            base_directory?: string;
-            publish_directory?: string | null;
-            dockerfile_location?: string;
-            docker_compose_location?: string;
-            static_image?: string;
-            install_command?: string | null;
-            build_command?: string | null;
-            start_command?: string | null;
-        };
-        ApplicationUpdate: {
-            name?: string;
-            fqdn?: string | null;
-            git_repository?: string;
-            git_branch?: string;
-            git_commit_sha?: string;
-            build_pack?: components["schemas"]["BuildPack"];
-            static_image?: string;
-            dockerfile_location?: string;
-            docker_compose_location?: string;
-            base_directory?: string;
-            publish_directory?: string | null;
-            install_command?: string | null;
-            build_command?: string | null;
-            start_command?: string | null;
-            ports_exposes?: string;
-            ports_mappings?: string | null;
-            health_check_enabled?: boolean;
-            health_check_path?: string;
-            limits_memory?: string;
-            limits_cpus?: string;
-            custom_docker_run_options?: string | null;
-        };
-        DeployRequest: {
-            /** @default false */
-            force_rebuild: boolean;
-        };
-        DeployResponse: {
-            deployment_uuid: string;
-        };
-        EnvVar: {
-            uuid: string;
-            key: string;
-            /** @description null once a shown-once variable has been read */
-            value?: string | null;
-            is_buildtime: boolean;
-            is_literal: boolean;
-            is_shown_once: boolean;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            updated_at?: string;
-        };
-        EnvVarCreate: {
-            key: string;
-            value: string;
-            /** @default false */
-            is_buildtime: boolean;
-            /** @default false */
-            is_literal: boolean;
-            /** @default false */
-            is_shown_once: boolean;
-        };
-        EnvVarUpdate: {
-            key?: string;
-            value?: string;
-            is_buildtime?: boolean;
-            is_literal?: boolean;
-            is_shown_once?: boolean;
-        };
-        ContainerLogs: {
-            logs: string;
-        };
-        /** @enum {string} */
-        DeploymentStatus: "queued" | "in_progress" | "finished" | "failed" | "cancelled";
-        Deployment: {
-            uuid: string;
-            application_uuid: string;
-            server_uuid: string;
-            status: components["schemas"]["DeploymentStatus"];
-            commit_sha?: string | null;
-            commit_message?: string | null;
-            force_rebuild: boolean;
-            rollback: boolean;
-            /** Format: date-time */
-            started_at?: string | null;
-            /** Format: date-time */
-            finished_at?: string | null;
-            /** Format: date-time */
-            created_at: string;
-        };
-        /** @description Contract C3 log line (JSON field `order` maps to DB column `ord`) */
-        LogLine: {
-            /** Format: int64 */
-            order: number;
-            /** @enum {string} */
-            kind: "stdout" | "stderr" | "info";
-            content: string;
-            hidden: boolean;
-            batch: number;
-            /** Format: date-time */
-            timestamp: string;
-        };
-        DeploymentDetail: components["schemas"]["Deployment"] & {
-            logs: components["schemas"]["LogLine"][];
-        };
-        InstanceSettings: {
-            fqdn?: string | null;
-            wildcard_domain?: string | null;
-            registration_enabled: boolean;
-        };
-        InstanceSettingsUpdate: {
-            fqdn?: string | null;
-            wildcard_domain?: string | null;
-            registration_enabled?: boolean;
-        };
-        ApiToken: {
-            uuid: string;
-            name: string;
-            abilities: string[];
-            /** Format: date-time */
-            last_used_at?: string | null;
-            /** Format: date-time */
-            created_at: string;
-        };
-        ApiTokenCreate: {
-            name: string;
-        };
-        ApiTokenCreated: {
-            uuid: string;
-            name: string;
-            /** @description shown exactly once */
-            token: string;
+        ValidateResponse: {
+            job_uuid: string;
         };
     };
-    responses: {
-        /** @description Error envelope */
-        Error: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ApiErrorBody"];
-            };
-        };
-    };
-    parameters: {
-        Uuid: string;
-    };
+    responses: never;
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_tokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of API tokens */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenDto"][];
+                };
+            };
+        };
+    };
+    create_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description Token created (shown once) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiTokenCreated"];
+                };
+            };
+        };
+    };
+    delete_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API token uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    list_applications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of applications */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDto"][];
+                };
+            };
+        };
+    };
+    create_application: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationCreate"];
+            };
+        };
+        responses: {
+            /** @description Application created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDto"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    get_application: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_application: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_application: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplicationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    deploy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeployRequest"];
+            };
+        };
+        responses: {
+            /** @description Deployment queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeployResponse"];
+                };
+            };
+        };
+    };
+    list_envs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Environment variables */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvVarDto"][];
+                };
+            };
+        };
+    };
+    create_env: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvVarCreate"];
+            };
+        };
+        responses: {
+            /** @description Env var upserted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvVarDto"];
+                };
+            };
+        };
+    };
+    delete_env: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+                /** @description Env var uuid */
+                env_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_env: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+                /** @description Env var uuid */
+                env_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvVarUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated env var */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvVarDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    logs: {
+        parameters: {
+            query?: {
+                /** @description Tail this many lines (default 100) */
+                lines?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Container logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContainerLogs"];
+                };
+            };
+        };
+    };
+    restart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restart enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stop enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -881,7 +1282,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Logged in; sets session cookie */
+            /** @description Logged in; session cookie set */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -890,7 +1291,15 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponse"];
                 };
             };
-            401: components["responses"]["Error"];
+            /** @description Invalid credentials */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
     logout: {
@@ -920,19 +1329,130 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current user */
+            /** @description The authenticated user */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["UserDto"];
                 };
             };
-            401: components["responses"]["Error"];
+            /** @description Not authenticated */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    listPrivateKeys: {
+    list_deployments: {
+        parameters: {
+            query: {
+                /** @description Filter by application uuid */
+                application_uuid: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deployments for the application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentDto"][];
+                };
+            };
+            /** @description Missing application_uuid */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    get_deployment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Deployment uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deployment with logs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeploymentDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Deployment uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancellation requested */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+            /** @description Deployment is not cancellable */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    health: {
         parameters: {
             query?: never;
             header?: never;
@@ -941,18 +1461,38 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Private keys */
+            /** @description Service is up */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrivateKey"][];
+                    "application/json": components["schemas"]["Health"];
                 };
             };
         };
     };
-    createPrivateKey: {
+    list_keys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of private keys */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivateKeyDto"][];
+                };
+            };
+        };
+    };
+    create_key: {
         parameters: {
             query?: never;
             header?: never;
@@ -965,19 +1505,27 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created */
+            /** @description Key created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrivateKey"];
+                    "application/json": components["schemas"]["PrivateKeyDto"];
                 };
             };
-            422: components["responses"]["Error"];
+            /** @description Invalid key material */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    generatePrivateKey: {
+    generate: {
         parameters: {
             query?: never;
             header?: never;
@@ -990,46 +1538,56 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Generated */
+            /** @description ed25519 key generated */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrivateKey"];
+                    "application/json": components["schemas"]["PrivateKeyDto"];
                 };
             };
         };
     };
-    getPrivateKey: {
+    get_key: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Private key uuid */
+                uuid: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Private key */
+            /** @description The key */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrivateKey"];
+                    "application/json": components["schemas"]["PrivateKeyDto"];
                 };
             };
-            404: components["responses"]["Error"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    deletePrivateKey: {
+    delete_key: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Private key uuid */
+                uuid: string;
             };
             cookie?: never;
         };
@@ -1042,15 +1600,24 @@ export interface operations {
                 };
                 content?: never;
             };
-            404: components["responses"]["Error"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    updatePrivateKey: {
+    update_key: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Private key uuid */
+                uuid: string;
             };
             cookie?: never;
         };
@@ -1060,19 +1627,27 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Updated */
+            /** @description Updated key */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrivateKey"];
+                    "application/json": components["schemas"]["PrivateKeyDto"];
                 };
             };
-            404: components["responses"]["Error"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    listServers: {
+    list_projects: {
         parameters: {
             query?: never;
             header?: never;
@@ -1081,18 +1656,210 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Servers */
+            /** @description List of projects */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Server"][];
+                    "application/json": components["schemas"]["ProjectDto"][];
                 };
             };
         };
     };
-    createServer: {
+    create_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreate"];
+            };
+        };
+        responses: {
+            /** @description Project created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDto"];
+                };
+            };
+        };
+    };
+    get_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The project */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated project */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    list_environments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Environments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvironmentDto"][];
+                };
+            };
+        };
+    };
+    create_environment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Project uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnvironmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Environment created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvironmentDto"];
+                };
+            };
+        };
+    };
+    list_servers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of servers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerDto"][];
+                };
+            };
+        };
+    };
+    create_server: {
         parameters: {
             query?: never;
             header?: never;
@@ -1105,47 +1872,65 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created */
+            /** @description Server created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Server"];
+                    "application/json": components["schemas"]["ServerDto"];
                 };
             };
-            422: components["responses"]["Error"];
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    getServer: {
+    get_server: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Server */
+            /** @description The server */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Server"];
+                    "application/json": components["schemas"]["ServerDto"];
                 };
             };
-            404: components["responses"]["Error"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    deleteServer: {
+    delete_server: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
@@ -1158,15 +1943,24 @@ export interface operations {
                 };
                 content?: never;
             };
-            404: components["responses"]["Error"];
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
         };
     };
-    updateServer: {
+    update_server: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
@@ -1176,46 +1970,33 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Updated */
+            /** @description Updated server */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Server"];
+                    "application/json": components["schemas"]["ServerDto"];
                 };
             };
-            404: components["responses"]["Error"];
-        };
-    };
-    validateServer: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Validation started */
-            202: {
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ValidateResponse"];
+                    "application/json": components["schemas"]["ApiErrorBody"];
                 };
             };
         };
     };
-    getServerProxy: {
+    get_proxy: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
@@ -1232,12 +2013,13 @@ export interface operations {
             };
         };
     };
-    updateServerProxy: {
+    update_proxy: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
@@ -1247,7 +2029,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Saved */
+            /** @description Saved proxy config */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1258,18 +2040,19 @@ export interface operations {
             };
         };
     };
-    startServerProxy: {
+    proxy_restart: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Proxy start queued */
+            /** @description Proxy restart enqueued */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -1278,18 +2061,19 @@ export interface operations {
             };
         };
     };
-    stopServerProxy: {
+    proxy_start: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Proxy stop queued */
+            /** @description Proxy start enqueued */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -1298,18 +2082,19 @@ export interface operations {
             };
         };
     };
-    restartServerProxy: {
+    proxy_stop: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Proxy restart queued */
+            /** @description Proxy stop enqueued */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -1318,538 +2103,30 @@ export interface operations {
             };
         };
     };
-    listProjects: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Projects */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"][];
-                };
-            };
-        };
-    };
-    createProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProjectCreate"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-        };
-    };
-    getProject: {
+    validate: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                uuid: components["parameters"]["Uuid"];
+                /** @description Server uuid */
+                uuid: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Project with environments */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-            404: components["responses"]["Error"];
-        };
-    };
-    deleteProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    updateProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProjectUpdate"];
-            };
-        };
-        responses: {
-            /** @description Updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-        };
-    };
-    listEnvironments: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Environments */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Environment"][];
-                };
-            };
-        };
-    };
-    createEnvironment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EnvironmentCreate"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Environment"];
-                };
-            };
-        };
-    };
-    listApplications: {
-        parameters: {
-            query?: {
-                project_uuid?: string;
-                environment_uuid?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Applications */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Application"][];
-                };
-            };
-        };
-    };
-    createApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplicationCreate"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Application"];
-                };
-            };
-            422: components["responses"]["Error"];
-        };
-    };
-    getApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Application */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Application"];
-                };
-            };
-            404: components["responses"]["Error"];
-        };
-    };
-    deleteApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    updateApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplicationUpdate"];
-            };
-        };
-        responses: {
-            /** @description Updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Application"];
-                };
-            };
-        };
-    };
-    deployApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["DeployRequest"];
-            };
-        };
-        responses: {
-            /** @description Deployment queued */
+            /** @description Validation enqueued */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DeployResponse"];
+                    "application/json": components["schemas"]["ValidateResponse"];
                 };
             };
         };
     };
-    stopApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Stop queued */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    restartApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Restart queued */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    listEnvVars: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Environment variables */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EnvVar"][];
-                };
-            };
-        };
-    };
-    createEnvVar: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EnvVarCreate"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EnvVar"];
-                };
-            };
-            422: components["responses"]["Error"];
-        };
-    };
-    deleteEnvVar: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-                env_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    updateEnvVar: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-                env_uuid: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EnvVarUpdate"];
-            };
-        };
-        responses: {
-            /** @description Updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EnvVar"];
-                };
-            };
-        };
-    };
-    getApplicationLogs: {
-        parameters: {
-            query?: {
-                lines?: number;
-            };
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Container logs (docker logs -n) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContainerLogs"];
-                };
-            };
-        };
-    };
-    listDeployments: {
-        parameters: {
-            query?: {
-                application_uuid?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deployments */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Deployment"][];
-                };
-            };
-        };
-    };
-    getDeployment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deployment incl. logs[] (C3 LogLine) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DeploymentDetail"];
-                };
-            };
-            404: components["responses"]["Error"];
-        };
-    };
-    cancelDeployment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Cancel requested */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            409: components["responses"]["Error"];
-        };
-    };
-    getSettings: {
+    get_settings: {
         parameters: {
             query?: never;
             header?: never;
@@ -1864,12 +2141,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InstanceSettings"];
+                    "application/json": components["schemas"]["InstanceSettingsDto"];
                 };
             };
         };
     };
-    updateSettings: {
+    update_settings: {
         parameters: {
             query?: never;
             header?: never;
@@ -1882,97 +2159,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Updated */
+            /** @description Updated settings */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InstanceSettings"];
-                };
-            };
-        };
-    };
-    listApiTokens: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description API tokens (no secrets) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiToken"][];
-                };
-            };
-        };
-    };
-    createApiToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApiTokenCreate"];
-            };
-        };
-        responses: {
-            /** @description Created; `token` is shown exactly once */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiTokenCreated"];
-                };
-            };
-        };
-    };
-    deleteApiToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                uuid: components["parameters"]["Uuid"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    health: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Liveness */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Health"];
+                    "application/json": components["schemas"]["InstanceSettingsDto"];
                 };
             };
         };
