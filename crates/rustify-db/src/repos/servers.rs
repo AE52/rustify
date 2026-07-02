@@ -121,6 +121,82 @@ impl ServerRepo {
         Ok(row)
     }
 
+    /// Resolve a server by numeric id — used by the API to render the
+    /// `server_uuid` of deployments/applications (contract C5 shapes).
+    pub async fn get_by_id(&self, id: i64) -> DbResult<Option<Server>> {
+        let row = sqlx::query_as::<_, Server>(&format!(
+            "SELECT {SERVER_COLS} FROM servers WHERE id = $1"
+        ))
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Resolve a destination by numeric id — maps an application's
+    /// `destination_id` back to its owning server (contract C5 shapes).
+    pub async fn destination_by_id(&self, id: i64) -> DbResult<Option<Destination>> {
+        let row = sqlx::query_as::<_, Destination>(
+            "SELECT id, uuid, server_id, network, created_at
+             FROM destinations WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Partial update for `PATCH /servers/{uuid}` (contract C5). `NULL` args
+    /// leave the corresponding column unchanged. Returns the updated row, or
+    /// `None` if the uuid is unknown.
+    pub async fn update(
+        &self,
+        uuid: &str,
+        name: Option<&str>,
+        ip: Option<&str>,
+        port: Option<i32>,
+        ssh_user: Option<&str>,
+        private_key_id: Option<i64>,
+    ) -> DbResult<Option<Server>> {
+        let row = sqlx::query_as::<_, Server>(&format!(
+            "UPDATE servers
+                SET name = COALESCE($2, name),
+                    ip = COALESCE($3, ip),
+                    port = COALESCE($4, port),
+                    ssh_user = COALESCE($5, ssh_user),
+                    private_key_id = COALESCE($6, private_key_id),
+                    updated_at = now()
+              WHERE uuid = $1
+              RETURNING {SERVER_COLS}"
+        ))
+        .bind(uuid)
+        .bind(name)
+        .bind(ip)
+        .bind(port)
+        .bind(ssh_user)
+        .bind(private_key_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Persist the proxy's saved custom config (`PATCH /servers/{uuid}/proxy`).
+    pub async fn set_proxy_custom_config(
+        &self,
+        server_id: i64,
+        proxy_custom_config: Option<&str>,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE server_settings SET proxy_custom_config = $2, updated_at = now()
+             WHERE server_id = $1",
+        )
+        .bind(server_id)
+        .bind(proxy_custom_config)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn list(&self, team_id: i64) -> DbResult<Vec<Server>> {
         let rows = sqlx::query_as::<_, Server>(&format!(
             "SELECT {SERVER_COLS} FROM servers WHERE team_id = $1 ORDER BY id"

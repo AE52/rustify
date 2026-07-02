@@ -11,7 +11,7 @@ pub mod settings;
 pub mod teams;
 pub mod users;
 
-pub use applications::{Application, ApplicationRepo, NewApplication};
+pub use applications::{Application, ApplicationPatch, ApplicationRepo, NewApplication};
 pub use deployments::{Deployment, DeploymentRepo, NewDeployment};
 pub use env_vars::{EnvVar, EnvVarRepo, NewEnvVar};
 pub use keys::{KeyRepo, PrivateKey};

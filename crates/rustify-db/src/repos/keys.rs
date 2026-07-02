@@ -68,6 +68,53 @@ impl KeyRepo {
         Ok(row)
     }
 
+    /// Resolve a key by its numeric id — used by the API to render the
+    /// `private_key_uuid` of a server (contract C5 server response shape).
+    pub async fn get_by_id(&self, id: i64) -> DbResult<Option<PrivateKey>> {
+        let row = sqlx::query_as::<_, PrivateKey>(&format!(
+            "SELECT {COLS} FROM private_keys WHERE id = $1"
+        ))
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Partial update for `PATCH /private-keys/{uuid}` (contract C5). `name`
+    /// renames; `key_material` (decrypted PEM + its derived public key)
+    /// re-encrypts and rotates the stored key. `NULL` args leave the column
+    /// unchanged. Returns the updated row, or `None` if the uuid is unknown.
+    pub async fn update(
+        &self,
+        uuid: &str,
+        name: Option<&str>,
+        key_material: Option<(&str, &str)>,
+    ) -> DbResult<Option<PrivateKey>> {
+        let (enc, public_key) = match key_material {
+            Some((private_key, public_key)) => (
+                Some(crypto::encrypt(private_key.as_bytes())),
+                Some(public_key),
+            ),
+            None => (None, None),
+        };
+        let row = sqlx::query_as::<_, PrivateKey>(&format!(
+            "UPDATE private_keys
+                SET name = COALESCE($2, name),
+                    private_key_enc = COALESCE($3, private_key_enc),
+                    public_key = COALESCE($4, public_key),
+                    updated_at = now()
+              WHERE uuid = $1
+              RETURNING {COLS}"
+        ))
+        .bind(uuid)
+        .bind(name)
+        .bind(enc)
+        .bind(public_key)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
     pub async fn list(&self, team_id: i64) -> DbResult<Vec<PrivateKey>> {
         let rows = sqlx::query_as::<_, PrivateKey>(&format!(
             "SELECT {COLS} FROM private_keys WHERE team_id = $1 ORDER BY id"
