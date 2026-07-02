@@ -288,7 +288,7 @@ async fn await_terminal(client: &reqwest::Client, dep_uuid: &str, timeout: Durat
         timeout,
         |d| {
             matches!(
-                d["deployment"]["status"].as_str(),
+                d["status"].as_str(),
                 Some("finished") | Some("failed") | Some("cancelled")
             )
         },
@@ -297,7 +297,10 @@ async fn await_terminal(client: &reqwest::Client, dep_uuid: &str, timeout: Durat
 }
 
 fn status_of(detail: &Value) -> &str {
-    detail["deployment"]["status"].as_str().unwrap_or("")
+    // The server flattens the deployment fields into the top-level object
+    // (`DeploymentDetailDto` uses `#[serde(flatten)]`), so `status` and `logs`
+    // are siblings — the same shape the web SPA consumes.
+    detail["status"].as_str().unwrap_or("")
 }
 
 fn logs_of(detail: &Value) -> &Vec<Value> {
