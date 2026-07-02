@@ -5,4 +5,19 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
+[features]
+# Integration tests that require a reachable sshd (exercised by Track H).
+# Not run by the default gate; `cargo check --features ssh-tests` compiles them.
+ssh-tests = []
+
 [dependencies]
+async-trait = { workspace = true }
+rand = { workspace = true }
+rustify-core = { path = "../rustify-core" }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { workspace = true, features = ["test-util"] }
