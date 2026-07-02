@@ -26,7 +26,7 @@ pub struct InstanceSettingsUpdate {
     pub registration_enabled: Option<bool>,
 }
 
-#[utoipa::path(get, path = "/settings", tag = "settings",
+#[utoipa::path(get, path = "/settings", operation_id = "get_settings", tag = "settings",
     responses((status = 200, description = "Instance settings", body = InstanceSettingsDto)))]
 pub async fn get(
     State(state): State<AppState>,
@@ -40,7 +40,7 @@ pub async fn get(
     }))
 }
 
-#[utoipa::path(patch, path = "/settings", tag = "settings",
+#[utoipa::path(patch, path = "/settings", operation_id = "update_settings", tag = "settings",
     request_body = InstanceSettingsUpdate,
     responses((status = 200, description = "Updated settings", body = InstanceSettingsDto)))]
 pub async fn update(

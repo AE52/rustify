@@ -81,6 +81,7 @@ async fn owned(state: &AppState, team: &CurrentTeam, uuid: &str) -> ApiResult<Pr
 #[utoipa::path(
     get,
     path = "/private-keys",
+    operation_id = "list_keys",
     tag = "private-keys",
     responses((status = 200, description = "List of private keys", body = [PrivateKeyDto]))
 )]
@@ -95,6 +96,7 @@ pub async fn list(
 #[utoipa::path(
     post,
     path = "/private-keys",
+    operation_id = "create_key",
     tag = "private-keys",
     request_body = PrivateKeyCreate,
     responses(
@@ -146,6 +148,7 @@ pub async fn generate(
 #[utoipa::path(
     get,
     path = "/private-keys/{uuid}",
+    operation_id = "get_key",
     tag = "private-keys",
     params(("uuid" = String, Path, description = "Private key uuid")),
     responses(
@@ -165,6 +168,7 @@ pub async fn get(
 #[utoipa::path(
     patch,
     path = "/private-keys/{uuid}",
+    operation_id = "update_key",
     tag = "private-keys",
     params(("uuid" = String, Path, description = "Private key uuid")),
     request_body = PrivateKeyUpdate,
@@ -195,6 +199,7 @@ pub async fn update(
 #[utoipa::path(
     delete,
     path = "/private-keys/{uuid}",
+    operation_id = "delete_key",
     tag = "private-keys",
     params(("uuid" = String, Path, description = "Private key uuid")),
     responses(

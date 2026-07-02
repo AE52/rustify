@@ -318,7 +318,7 @@ fn validate_build_pack(bp: &str) -> ApiResult<()> {
 
 // ----- CRUD ---------------------------------------------------------------
 
-#[utoipa::path(get, path = "/applications", tag = "applications",
+#[utoipa::path(get, path = "/applications", operation_id = "list_applications", tag = "applications",
     responses((status = 200, description = "List of applications", body = [ApplicationDto])))]
 pub async fn list(
     State(state): State<AppState>,
@@ -340,7 +340,7 @@ pub async fn list(
     Ok(Json(out))
 }
 
-#[utoipa::path(post, path = "/applications", tag = "applications", request_body = ApplicationCreate,
+#[utoipa::path(post, path = "/applications", operation_id = "create_application", tag = "applications", request_body = ApplicationCreate,
     responses(
         (status = 201, description = "Application created", body = ApplicationDto),
         (status = 422, description = "Validation error", body = crate::error::ApiErrorBody),
@@ -422,7 +422,7 @@ fn has_patch(p: &ApplicationPatch) -> bool {
         || p.start_command.is_some()
 }
 
-#[utoipa::path(get, path = "/applications/{uuid}", tag = "applications",
+#[utoipa::path(get, path = "/applications/{uuid}", operation_id = "get_application", tag = "applications",
     params(("uuid" = String, Path, description = "Application uuid")),
     responses(
         (status = 200, description = "The application", body = ApplicationDto),
@@ -437,7 +437,7 @@ pub async fn get(
     Ok(Json(to_dto(ctx)))
 }
 
-#[utoipa::path(patch, path = "/applications/{uuid}", tag = "applications",
+#[utoipa::path(patch, path = "/applications/{uuid}", operation_id = "update_application", tag = "applications",
     params(("uuid" = String, Path, description = "Application uuid")),
     request_body = ApplicationUpdate,
     responses(
@@ -489,7 +489,7 @@ pub async fn update(
     Ok(Json(to_dto(ctx)))
 }
 
-#[utoipa::path(delete, path = "/applications/{uuid}", tag = "applications",
+#[utoipa::path(delete, path = "/applications/{uuid}", operation_id = "delete_application", tag = "applications",
     params(("uuid" = String, Path, description = "Application uuid")),
     responses(
         (status = 204, description = "Deleted"),
