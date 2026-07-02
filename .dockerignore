@@ -1,0 +1,6 @@
+target
+web/node_modules
+web/dist
+.git
+tests/e2e/docker/fixtures/id_ed25519
+**/*.log

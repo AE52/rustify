@@ -1,0 +1,58 @@
+# Production stack: the Rustify server + its Postgres.
+#
+# Quickstart:
+#   export RUSTIFY_SECRET_KEY=$(head -c 32 /dev/urandom | base64)
+#   docker compose -f docker-compose.prod.yml up -d
+#   open http://localhost:8000  (log in with RUSTIFY_ADMIN_EMAIL/PASSWORD)
+#
+# The server mounts the host Docker socket so it can run the Traefik proxy and
+# manage local containers, and persists SSH keys/mux sockets in a named volume.
+
+name: rustify
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rustify
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rustify}
+      POSTGRES_DB: rustify
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rustify"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rustify:
+    image: rustify:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://rustify:${POSTGRES_PASSWORD:-rustify}@postgres:5432/rustify
+      # 32-byte base64 key for AES-256-GCM at-rest encryption. REQUIRED.
+      RUSTIFY_SECRET_KEY: ${RUSTIFY_SECRET_KEY:?set RUSTIFY_SECRET_KEY (base64 of 32 bytes)}
+      # First-run admin, seeded if the users table is empty.
+      RUSTIFY_ADMIN_EMAIL: ${RUSTIFY_ADMIN_EMAIL:-admin@rustify.local}
+      RUSTIFY_ADMIN_PASSWORD: ${RUSTIFY_ADMIN_PASSWORD:-changeme}
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - rustify-data:/data/rustify
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:
+  rustify-data:
