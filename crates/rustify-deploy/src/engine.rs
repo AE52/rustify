@@ -267,7 +267,7 @@ impl Engine {
                 let image = format!("{}:{}", self.application.uuid, sha);
                 // Step 4: skip build if the image already exists.
                 if self.skip_build(&image).await? {
-                    self.info("Image already built for this commit; skipping build.")
+                    self.info("Image already exists for this commit; skipping build.")
                         .await;
                 } else {
                     self.clone_repo(&sha).await?; // step 5
@@ -802,7 +802,18 @@ impl Engine {
             }
         }
 
-        let output = result.expect("exec future resolved before channel closed")?;
+        // The loop only breaks once `result` is `Some` (the exec future has
+        // resolved). Guard the invariant with a graceful error instead of a
+        // panic: a panic here would unwind past the caller's helper-cleanup
+        // step, leaking the build container.
+        let output = match result {
+            Some(r) => r?,
+            None => {
+                return Err(DeployError::Exec(rustify_core::ExecError::Io(
+                    "exec stream closed before the command resolved".into(),
+                )));
+            }
+        };
         if !allow_failure && output.exit_code != 0 {
             return Err(DeployError::Build(format!(
                 "command exited {}: {}",
