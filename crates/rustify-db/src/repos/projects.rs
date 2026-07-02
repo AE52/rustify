@@ -82,6 +82,54 @@ impl ProjectRepo {
         Ok(row)
     }
 
+    /// Resolve a project by numeric id — used to render an application's
+    /// `project_uuid` (contract C5 shape) via its environment.
+    pub async fn get_by_id(&self, id: i64) -> DbResult<Option<Project>> {
+        let row = sqlx::query_as::<_, Project>(&format!(
+            "SELECT {PROJECT_COLS} FROM projects WHERE id = $1"
+        ))
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Resolve an environment by numeric id — maps an application's
+    /// `environment_id` to its uuid/name and owning project (contract C5).
+    pub async fn environment_by_id(&self, id: i64) -> DbResult<Option<Environment>> {
+        let row = sqlx::query_as::<_, Environment>(&format!(
+            "SELECT {ENV_COLS} FROM environments WHERE id = $1"
+        ))
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Partial update for `PATCH /projects/{uuid}` (contract C5). `NULL` name
+    /// leaves it unchanged; `description` is always assigned (nullable column).
+    pub async fn update(
+        &self,
+        uuid: &str,
+        name: Option<&str>,
+        description: Option<&str>,
+    ) -> DbResult<Option<Project>> {
+        let row = sqlx::query_as::<_, Project>(&format!(
+            "UPDATE projects
+                SET name = COALESCE($2, name),
+                    description = COALESCE($3, description),
+                    updated_at = now()
+              WHERE uuid = $1
+              RETURNING {PROJECT_COLS}"
+        ))
+        .bind(uuid)
+        .bind(name)
+        .bind(description)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
     pub async fn list(&self, team_id: i64) -> DbResult<Vec<Project>> {
         let rows = sqlx::query_as::<_, Project>(&format!(
             "SELECT {PROJECT_COLS} FROM projects WHERE team_id = $1 ORDER BY id"

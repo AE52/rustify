@@ -68,6 +68,35 @@ pub struct NewApplication {
     pub fqdn: Option<String>,
 }
 
+/// Partial update for `PATCH /applications/{uuid}` (contract C5). Every field
+/// is optional; `None` leaves the column unchanged (implemented with
+/// `COALESCE`, so nullable columns cannot be cleared to `NULL` via PATCH —
+/// Phase-1 limitation).
+#[derive(Debug, Clone, Default)]
+pub struct ApplicationPatch {
+    pub name: Option<String>,
+    pub fqdn: Option<String>,
+    pub git_repository: Option<String>,
+    pub git_branch: Option<String>,
+    pub git_commit_sha: Option<String>,
+    pub build_pack: Option<String>,
+    pub static_image: Option<String>,
+    pub dockerfile_location: Option<String>,
+    pub docker_compose_location: Option<String>,
+    pub base_directory: Option<String>,
+    pub publish_directory: Option<String>,
+    pub install_command: Option<String>,
+    pub build_command: Option<String>,
+    pub start_command: Option<String>,
+    pub ports_exposes: Option<String>,
+    pub ports_mappings: Option<String>,
+    pub health_check_enabled: Option<bool>,
+    pub health_check_path: Option<String>,
+    pub limits_memory: Option<String>,
+    pub limits_cpus: Option<String>,
+    pub custom_docker_run_options: Option<String>,
+}
+
 // Every column, in table order — shared by all SELECT/RETURNING queries.
 const COLS: &str = "id, uuid, environment_id, destination_id, name, fqdn, git_repository, \
      git_branch, git_commit_sha, build_pack, static_image, docker_registry_image_name, \
@@ -117,6 +146,79 @@ impl ApplicationRepo {
             "SELECT {COLS} FROM applications WHERE uuid = $1"
         ))
         .bind(uuid)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Resolve an application by numeric id — used to render a deployment's
+    /// `application_uuid` (contract C5 shape).
+    pub async fn get_by_id(&self, id: i64) -> DbResult<Option<Application>> {
+        let row = sqlx::query_as::<_, Application>(&format!(
+            "SELECT {COLS} FROM applications WHERE id = $1"
+        ))
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    /// Apply a partial update (contract C5 `PATCH /applications/{uuid}`),
+    /// returning the updated row or `None` if the uuid is unknown.
+    pub async fn update(
+        &self,
+        uuid: &str,
+        patch: &ApplicationPatch,
+    ) -> DbResult<Option<Application>> {
+        let row = sqlx::query_as::<_, Application>(&format!(
+            "UPDATE applications SET
+                name = COALESCE($2, name),
+                fqdn = COALESCE($3, fqdn),
+                git_repository = COALESCE($4, git_repository),
+                git_branch = COALESCE($5, git_branch),
+                git_commit_sha = COALESCE($6, git_commit_sha),
+                build_pack = COALESCE($7, build_pack),
+                static_image = COALESCE($8, static_image),
+                dockerfile_location = COALESCE($9, dockerfile_location),
+                docker_compose_location = COALESCE($10, docker_compose_location),
+                base_directory = COALESCE($11, base_directory),
+                publish_directory = COALESCE($12, publish_directory),
+                install_command = COALESCE($13, install_command),
+                build_command = COALESCE($14, build_command),
+                start_command = COALESCE($15, start_command),
+                ports_exposes = COALESCE($16, ports_exposes),
+                ports_mappings = COALESCE($17, ports_mappings),
+                health_check_enabled = COALESCE($18, health_check_enabled),
+                health_check_path = COALESCE($19, health_check_path),
+                limits_memory = COALESCE($20, limits_memory),
+                limits_cpus = COALESCE($21, limits_cpus),
+                custom_docker_run_options = COALESCE($22, custom_docker_run_options),
+                updated_at = now()
+              WHERE uuid = $1
+              RETURNING {COLS}"
+        ))
+        .bind(uuid)
+        .bind(&patch.name)
+        .bind(&patch.fqdn)
+        .bind(&patch.git_repository)
+        .bind(&patch.git_branch)
+        .bind(&patch.git_commit_sha)
+        .bind(&patch.build_pack)
+        .bind(&patch.static_image)
+        .bind(&patch.dockerfile_location)
+        .bind(&patch.docker_compose_location)
+        .bind(&patch.base_directory)
+        .bind(&patch.publish_directory)
+        .bind(&patch.install_command)
+        .bind(&patch.build_command)
+        .bind(&patch.start_command)
+        .bind(&patch.ports_exposes)
+        .bind(&patch.ports_mappings)
+        .bind(patch.health_check_enabled)
+        .bind(&patch.health_check_path)
+        .bind(&patch.limits_memory)
+        .bind(&patch.limits_cpus)
+        .bind(&patch.custom_docker_run_options)
         .fetch_optional(&self.pool)
         .await?;
         Ok(row)
