@@ -292,13 +292,15 @@ fn to_dto(ctx: AppContext) -> ApplicationDto {
     }
 }
 
-/// Reject a git URL that is not an `https://` or `git@` remote (contract C5).
+/// Reject a git URL that is not an `https://`, `git@`, or `file://` remote
+/// (contract C5). `file://` supports local bare repositories (used by the e2e
+/// harness, which deploys from bare repos seeded onto the target host).
 fn validate_git(url: &str) -> ApiResult<()> {
-    if url.starts_with("https://") || url.starts_with("git@") {
+    if url.starts_with("https://") || url.starts_with("git@") || url.starts_with("file://") {
         Ok(())
     } else {
         Err(ApiError::Validation(
-            "git_repository must start with https:// or git@".into(),
+            "git_repository must start with https://, git@, or file://".into(),
         ))
     }
 }
@@ -774,5 +776,24 @@ pub async fn delete_env(
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(ApiError::NotFound)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_git;
+
+    #[test]
+    fn accepts_supported_git_schemes() {
+        assert!(validate_git("https://github.com/x/y.git").is_ok());
+        assert!(validate_git("git@github.com:x/y.git").is_ok());
+        assert!(validate_git("file:///srv/git/nixpacks-node.git").is_ok());
+    }
+
+    #[test]
+    fn rejects_unsupported_git_schemes() {
+        assert!(validate_git("http://insecure/x.git").is_err());
+        assert!(validate_git("ssh://host/x.git").is_err());
+        assert!(validate_git("/local/path").is_err());
     }
 }
