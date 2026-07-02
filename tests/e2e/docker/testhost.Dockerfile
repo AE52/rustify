@@ -12,7 +12,9 @@ FROM docker:28-dind
 # (tests/e2e/docker/fixtures/id_ed25519.pub), injected at build time.
 ARG SSH_PUBKEY
 
-RUN apk add --no-cache openssh-server git curl \
+# bash: the SSH executor runs remote scripts via `bash -se` (contract C1), and
+# the alpine base ships only busybox `sh`. Real Linux targets have bash.
+RUN apk add --no-cache openssh-server git curl bash \
     && ssh-keygen -A \
     && mkdir -p /root/.ssh /srv/git \
     && chmod 700 /root/.ssh \
