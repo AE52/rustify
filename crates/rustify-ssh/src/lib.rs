@@ -106,6 +106,9 @@ async fn run_shell(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        // Kill the local process if the future is dropped (e.g. a deploy step
+        // aborted on cancellation) so we don't leak `ssh`/`scp` children.
+        .kill_on_drop(true)
         .spawn()
         .map_err(|e| ExecError::Io(e.to_string()))?;
 
