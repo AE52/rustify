@@ -16,7 +16,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 license = "Apache-2.0"
-repository = "https://github.com/erenozdemir/rustify"
+repository = "https://github.com/AE52/rustify"
 
 [workspace.dependencies]
 tokio = { version = "1", features = ["full"] }
