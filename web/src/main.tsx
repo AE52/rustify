@@ -1,10 +1,63 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { createBrowserRouter, RouterProvider } from 'react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
-import App from './App.tsx'
+import { Layout } from './components/Layout'
+import Login from './routes/login'
+import Onboarding from './routes/onboarding'
+import Dashboard from './routes/dashboard'
+import ServerPage from './routes/servers/[uuid]'
+import ProjectPage from './routes/projects/[uuid]'
+import ApplicationGeneral, { ApplicationLayout } from './routes/applications/[uuid]/index'
+import ApplicationEnvs from './routes/applications/[uuid]/envs'
+import ApplicationStorage from './routes/applications/[uuid]/storage'
+import ApplicationSource from './routes/applications/[uuid]/source'
+import ApplicationDomains from './routes/applications/[uuid]/domains'
+import ApplicationDeployments from './routes/applications/[uuid]/deployments'
+import DeploymentPage from './routes/deployments/[uuid]'
+import Settings from './routes/settings'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
+
+const router = createBrowserRouter([
+  { path: '/login', element: <Login /> },
+  {
+    element: <Layout />,
+    children: [
+      { path: '/', element: <Dashboard /> },
+      { path: '/onboarding', element: <Onboarding /> },
+      { path: '/servers/:uuid', element: <ServerPage /> },
+      { path: '/projects/:uuid', element: <ProjectPage /> },
+      {
+        path: '/applications/:uuid',
+        element: <ApplicationLayout />,
+        children: [
+          { index: true, element: <ApplicationGeneral /> },
+          { path: 'envs', element: <ApplicationEnvs /> },
+          { path: 'storage', element: <ApplicationStorage /> },
+          { path: 'source', element: <ApplicationSource /> },
+          { path: 'domains', element: <ApplicationDomains /> },
+          { path: 'deployments', element: <ApplicationDeployments /> },
+        ],
+      },
+      { path: '/deployments/:uuid', element: <DeploymentPage /> },
+      { path: '/settings', element: <Settings /> },
+    ],
+  },
+])
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   </StrictMode>,
 )
