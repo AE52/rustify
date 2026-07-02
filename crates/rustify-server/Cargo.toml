@@ -18,6 +18,7 @@ rustify-core = { path = "../rustify-core" }
 rustify-db = { path = "../rustify-db" }
 rustify-jobs = { path = "../rustify-jobs" }
 rustify-ssh = { path = "../rustify-ssh" }
+rustify-deploy = { path = "../rustify-deploy" }
 axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }

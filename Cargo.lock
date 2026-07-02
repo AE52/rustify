@@ -2079,6 +2079,7 @@ dependencies = [
  "rust-embed",
  "rustify-core",
  "rustify-db",
+ "rustify-deploy",
  "rustify-jobs",
  "rustify-ssh",
  "serde",
