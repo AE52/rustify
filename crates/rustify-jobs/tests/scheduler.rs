@@ -35,5 +35,8 @@ async fn scheduler_skips_ticks_while_task_running(_pool: PgPool) {
 
     let runs = runs.load(Ordering::SeqCst);
     assert!(runs >= 2, "scheduler barely ran: {runs} runs");
-    assert!(runs <= 6, "ticks overlapped instead of skipping: {runs} runs in 500ms");
+    assert!(
+        runs <= 6,
+        "ticks overlapped instead of skipping: {runs} runs in 500ms"
+    );
 }
