@@ -9,6 +9,7 @@
 pub mod crypto;
 pub mod deployment;
 pub mod error;
+pub mod events;
 pub mod exec;
 pub mod ids;
 pub mod logline;
@@ -16,6 +17,7 @@ pub mod redact;
 
 pub use deployment::{BuildPack, DeploymentStatus};
 pub use error::CoreError;
+pub use events::WsEvent;
 pub use exec::{CommandExecutor, ExecError, ExecEvent, ExecOpts, ExecOutput, ServerConn};
 pub use logline::LogLine;
 pub use redact::redact;
