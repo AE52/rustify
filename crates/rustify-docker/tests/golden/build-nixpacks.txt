@@ -1,0 +1,4 @@
+# Derived from Coolify nixpacks build (ApplicationDeploymentJob.php:3564):
+# `DOCKER_BUILDKIT=1 docker build ... -f {workdir}/.nixpacks/Dockerfile -t {image} {workdir}`.
+# Rendered here without buildkit for the plain-image variant.
+docker build -f /artifacts/dep1/.nixpacks/Dockerfile -t app-uuid:commitsha /artifacts/dep1
