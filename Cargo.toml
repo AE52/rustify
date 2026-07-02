@@ -38,3 +38,9 @@ utoipa-swagger-ui = "9"
 rust-embed = "8"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs", "cors"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+regex = "1"
+base64 = "0.22"
+sha2 = "0.10"
+hmac = "0.12"
+rand = "0.8"
