@@ -62,7 +62,10 @@ async fn four_workers_run_each_job_exactly_once(pool: PgPool) {
 
     let queue = JobQueue::new(pool.clone()).with_poll_interval(Duration::from_millis(20));
     for n in 0..20i64 {
-        queue.enqueue("count", json!({ "job_no": n }), None).await.unwrap();
+        queue
+            .enqueue("count", json!({ "job_no": n }), None)
+            .await
+            .unwrap();
     }
 
     let mut registry = JobRegistry::new();
@@ -98,7 +101,10 @@ async fn four_workers_run_each_job_exactly_once(pool: PgPool) {
             .unwrap();
     assert_eq!(rows.len(), 20, "every enqueued job must have run");
     for (job_no, runs) in rows {
-        assert_eq!(runs, 1, "job {job_no} ran {runs} times, expected exactly once");
+        assert_eq!(
+            runs, 1,
+            "job {job_no} ran {runs} times, expected exactly once"
+        );
     }
 }
 
@@ -124,7 +130,12 @@ async fn failing_job_retries_with_backoff_then_drops(pool: PgPool) {
 
     let calls = Arc::new(AtomicU32::new(0));
     let mut registry = JobRegistry::new();
-    registry.register("fail", Arc::new(FailingHandler { calls: calls.clone() }));
+    registry.register(
+        "fail",
+        Arc::new(FailingHandler {
+            calls: calls.clone(),
+        }),
+    );
 
     let started = std::time::Instant::now();
     queue.enqueue("fail", json!({}), None).await.unwrap();
@@ -159,13 +170,20 @@ async fn failing_job_retries_with_backoff_then_drops(pool: PgPool) {
 
     // Dropped after 3 attempts: give it time to (incorrectly) run again.
     tokio::time::sleep(backoff_base * 4).await;
-    assert_eq!(calls.load(Ordering::SeqCst), 3, "dropped job must not run again");
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        3,
+        "dropped job must not run again"
+    );
 
-    let (attempts, last_error, locked): (i32, Option<String>, Option<chrono::DateTime<chrono::Utc>>) =
-        sqlx::query_as("SELECT attempts, last_error, locked_at FROM jobs")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    let (attempts, last_error, locked): (
+        i32,
+        Option<String>,
+        Option<chrono::DateTime<chrono::Utc>>,
+    ) = sqlx::query_as("SELECT attempts, last_error, locked_at FROM jobs")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     assert_eq!(attempts, 3);
     assert!(
         last_error.as_deref().unwrap_or_default().contains("boom"),
@@ -202,7 +220,10 @@ async fn shutdown_drains_inflight_job_then_stops(pool: PgPool) {
     let mut registry = JobRegistry::new();
     registry.register(
         "slow",
-        Arc::new(SlowHandler { started: started.clone(), completed: completed.clone() }),
+        Arc::new(SlowHandler {
+            started: started.clone(),
+            completed: completed.clone(),
+        }),
     );
 
     queue.enqueue("slow", json!({}), None).await.unwrap();
@@ -236,12 +257,11 @@ async fn shutdown_drains_inflight_job_then_stops(pool: PgPool) {
         "in-flight job must complete during drain; queued job must not start"
     );
 
-    let (remaining, locked): (i64, i64) = sqlx::query_as(
-        "SELECT count(*), count(locked_at) FROM jobs",
-    )
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let (remaining, locked): (i64, i64) =
+        sqlx::query_as("SELECT count(*), count(locked_at) FROM jobs")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(remaining, 1, "finished job removed, queued job kept");
     assert_eq!(locked, 0, "remaining job must be unclaimed");
 }
