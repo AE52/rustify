@@ -1,0 +1,3 @@
+# Derived from Coolify BuildKit prefix (ApplicationDeploymentJob.php:723-725,
+# :3477) `DOCKER_BUILDKIT=1 docker build ...` with a --target build stage.
+DOCKER_BUILDKIT=1 docker build -f /artifacts/dep1/.nixpacks/Dockerfile --target runtime -t app-uuid:commitsha-build /artifacts/dep1

@@ -1,0 +1,16 @@
+[
+  {
+    "Id": "0011223344ff",
+    "Name": "/minimal-xyz789",
+    "State": {
+      "Status": "running",
+      "Running": true,
+      "Paused": false,
+      "ExitCode": 0
+    },
+    "Config": {
+      "Image": "minimal:latest",
+      "Labels": { "rustify.managed": "true" }
+    }
+  }
+]

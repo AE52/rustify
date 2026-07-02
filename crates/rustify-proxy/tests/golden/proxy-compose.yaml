@@ -1,0 +1,59 @@
+# Derived from Coolify generateDefaultProxyConfiguration Traefik branch,
+# bootstrap/helpers/proxy.php:266-352 (name/networks/services/traefik:
+# image traefik:v3.6 :281, ports :287-292, ping healthcheck :293-298,
+# docker.sock ro volume :300, command flags :303-319 + prod --api.insecure=false
+# :331 + standalone providers.docker :350-351, labels :267-274). Adapted to
+# Rustify naming per Contract C7: container rustify-proxy, dir /data/rustify/proxy,
+# network rustify, labels rustify.managed / rustify.proxy.
+name: rustify-proxy
+networks:
+  rustify:
+    external: true
+services:
+  traefik:
+    container_name: rustify-proxy
+    image: traefik:v3.6
+    restart: unless-stopped
+    extra_hosts:
+    - host.docker.internal:host-gateway
+    networks:
+    - rustify
+    ports:
+    - 80:80
+    - 443:443
+    - 443:443/udp
+    - 8080:8080
+    healthcheck:
+      test: wget -qO- http://localhost:80/ping || exit 1
+      interval: 4s
+      timeout: 2s
+      retries: 5
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - /data/rustify/proxy:/traefik
+    command:
+    - --ping=true
+    - --ping.entrypoint=http
+    - --api.dashboard=true
+    - --entrypoints.http.address=:80
+    - --entrypoints.https.address=:443
+    - --entrypoints.http.http.encodequerysemicolons=true
+    - --entryPoints.http.http2.maxConcurrentStreams=250
+    - --entrypoints.https.http.encodequerysemicolons=true
+    - --entryPoints.https.http2.maxConcurrentStreams=250
+    - --entrypoints.https.http3
+    - --providers.file.directory=/traefik/dynamic/
+    - --providers.file.watch=true
+    - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+    - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=http
+    - --certificatesresolvers.letsencrypt.acme.storage=/traefik/acme.json
+    - --api.insecure=false
+    - --providers.docker=true
+    - --providers.docker.exposedbydefault=false
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.traefik.entrypoints=http
+    - traefik.http.routers.traefik.service=api@internal
+    - traefik.http.services.traefik.loadbalancer.server.port=8080
+    - rustify.managed=true
+    - rustify.proxy=true

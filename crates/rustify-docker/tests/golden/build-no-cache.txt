@@ -1,0 +1,3 @@
+# Derived from Coolify disableBuildCache path (ApplicationDeploymentJob.php:2662,
+# :3564 `docker build --no-cache ...`). --pull mirrors pull_latest_image usage.
+docker build --no-cache --pull -t app-uuid:commitsha .
