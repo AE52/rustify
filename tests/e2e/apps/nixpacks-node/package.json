@@ -1,0 +1,13 @@
+{
+  "name": "rustify-e2e-nixpacks-node",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal Express hello app for the Rustify nixpacks E2E fixture.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
