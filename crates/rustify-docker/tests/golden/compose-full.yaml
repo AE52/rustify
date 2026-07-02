@@ -1,0 +1,43 @@
+# Derived from Coolify app compose generation in
+# app/Jobs/ApplicationDeploymentJob.php:3040-3265 (service block, labels,
+# healthcheck at :3176-3185, mem_limit/cpus, volumes, external network).
+# Healthcheck fallback chain pinned by trackC-brief.md Task C1 (curl||wget||exit 1).
+# Labels follow Contract C7 (rustify.* + Traefik http/https routers).
+services:
+  app-uuid-abc123:
+    container_name: app-uuid-abc123
+    image: app-uuid:commitsha
+    restart: unless-stopped
+    networks:
+    - rustify
+    expose:
+    - '3000'
+    env_file:
+    - .env
+    labels:
+    - rustify.managed=true
+    - rustify.applicationId=42
+    - rustify.applicationUuid=app-uuid
+    - rustify.deploymentId=dep-uuid
+    - traefik.enable=true
+    - traefik.http.routers.app-uuid.rule=Host(`x.example.com`)
+    - traefik.http.routers.app-uuid.entrypoints=http
+    - traefik.http.routers.app-uuid-secure.rule=Host(`x.example.com`)
+    - traefik.http.routers.app-uuid-secure.entrypoints=https
+    - traefik.http.routers.app-uuid-secure.tls.certresolver=letsencrypt
+    - traefik.http.services.app-uuid.loadbalancer.server.port=3000
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl -f http://localhost:3000/health || wget -qO- http://localhost:3000/health || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    mem_limit: 512m
+    cpus: '1.5'
+    volumes:
+    - /data/rustify/applications/app-uuid/storage:/app/storage
+networks:
+  rustify:
+    external: true

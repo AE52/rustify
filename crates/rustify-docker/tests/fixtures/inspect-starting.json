@@ -1,0 +1,19 @@
+[
+  {
+    "Id": "1a2b3c4d5e6f",
+    "Name": "/app-uuid-abc123",
+    "State": {
+      "Status": "running",
+      "Running": true,
+      "Health": {
+        "Status": "starting",
+        "FailingStreak": 0,
+        "Log": []
+      }
+    },
+    "Config": {
+      "Image": "app-uuid:commitsha",
+      "Labels": { "rustify.managed": "true" }
+    }
+  }
+]

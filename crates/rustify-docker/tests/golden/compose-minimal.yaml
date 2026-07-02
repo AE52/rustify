@@ -1,0 +1,21 @@
+# Derived from Coolify app compose generation in
+# app/Jobs/ApplicationDeploymentJob.php:3040-3265 (minimal case: no fqdn labels,
+# no healthcheck, unlimited resources omitted). External network per Contract C7.
+services:
+  minimal-xyz789:
+    container_name: minimal-xyz789
+    image: minimal:latest
+    restart: unless-stopped
+    networks:
+    - rustify
+    expose:
+    - '80'
+    labels:
+    - rustify.managed=true
+    - rustify.applicationId=1
+    - rustify.applicationUuid=minimal
+    - rustify.deploymentId=dep
+    - traefik.enable=true
+networks:
+  rustify:
+    external: true

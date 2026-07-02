@@ -1,0 +1,21 @@
+[
+  {
+    "Id": "abcdef123456",
+    "Name": "/app-uuid-abc123",
+    "State": {
+      "Status": "running",
+      "Running": true,
+      "Health": {
+        "Status": "unhealthy",
+        "FailingStreak": 5,
+        "Log": [
+          { "Start": "2026-07-02T10:00:00Z", "End": "2026-07-02T10:00:03Z", "ExitCode": 1, "Output": "connection refused" }
+        ]
+      }
+    },
+    "Config": {
+      "Image": "app-uuid:commitsha",
+      "Labels": { "rustify.managed": "true" }
+    }
+  }
+]
