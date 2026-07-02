@@ -1,0 +1,165 @@
+//! Applications aggregate. The table is wide (contract C6); most columns have
+//! SQL defaults, so `create` sets only the fields the create API supplies and
+//! lets Postgres fill the rest.
+
+use chrono::{DateTime, Utc};
+use sqlx::PgPool;
+
+use rustify_core::ids;
+
+use crate::DbResult;
+
+/// A full row of the `applications` table.
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize)]
+pub struct Application {
+    pub id: i64,
+    pub uuid: String,
+    pub environment_id: i64,
+    pub destination_id: i64,
+    pub name: String,
+    pub fqdn: Option<String>,
+    pub git_repository: String,
+    pub git_branch: String,
+    pub git_commit_sha: String,
+    pub build_pack: String,
+    pub static_image: String,
+    pub docker_registry_image_name: Option<String>,
+    pub docker_registry_image_tag: Option<String>,
+    pub dockerfile_location: String,
+    pub docker_compose_location: String,
+    pub base_directory: String,
+    pub publish_directory: Option<String>,
+    pub install_command: Option<String>,
+    pub build_command: Option<String>,
+    pub start_command: Option<String>,
+    pub ports_exposes: String,
+    pub ports_mappings: Option<String>,
+    pub health_check_enabled: bool,
+    pub health_check_path: String,
+    pub health_check_port: Option<String>,
+    pub health_check_host: String,
+    pub health_check_method: String,
+    pub health_check_return_code: i32,
+    pub health_check_interval: i32,
+    pub health_check_timeout: i32,
+    pub health_check_retries: i32,
+    pub health_check_start_period: i32,
+    pub limits_memory: String,
+    pub limits_cpus: String,
+    pub custom_docker_run_options: Option<String>,
+    pub status: String,
+    pub restart_count: i32,
+    pub max_restart_count: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Fields accepted by the create-application API (contract C5); everything
+/// else takes its schema default.
+#[derive(Debug, Clone)]
+pub struct NewApplication {
+    pub environment_id: i64,
+    pub destination_id: i64,
+    pub name: String,
+    pub git_repository: String,
+    pub git_branch: String,
+    pub build_pack: String,
+    pub ports_exposes: String,
+    pub fqdn: Option<String>,
+}
+
+// Every column, in table order — shared by all SELECT/RETURNING queries.
+const COLS: &str = "id, uuid, environment_id, destination_id, name, fqdn, git_repository, \
+     git_branch, git_commit_sha, build_pack, static_image, docker_registry_image_name, \
+     docker_registry_image_tag, dockerfile_location, docker_compose_location, base_directory, \
+     publish_directory, install_command, build_command, start_command, ports_exposes, \
+     ports_mappings, health_check_enabled, health_check_path, health_check_port, \
+     health_check_host, health_check_method, health_check_return_code, health_check_interval, \
+     health_check_timeout, health_check_retries, health_check_start_period, limits_memory, \
+     limits_cpus, custom_docker_run_options, status, restart_count, max_restart_count, \
+     created_at, updated_at";
+
+#[derive(Clone)]
+pub struct ApplicationRepo {
+    pool: PgPool,
+}
+
+impl ApplicationRepo {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn create(&self, new: NewApplication) -> DbResult<Application> {
+        let uuid = ids::new_uuid();
+        let row = sqlx::query_as::<_, Application>(&format!(
+            "INSERT INTO applications
+               (uuid, environment_id, destination_id, name, git_repository, git_branch,
+                build_pack, ports_exposes, fqdn)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             RETURNING {COLS}"
+        ))
+        .bind(&uuid)
+        .bind(new.environment_id)
+        .bind(new.destination_id)
+        .bind(&new.name)
+        .bind(&new.git_repository)
+        .bind(&new.git_branch)
+        .bind(&new.build_pack)
+        .bind(&new.ports_exposes)
+        .bind(new.fqdn)
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    pub async fn get_by_uuid(&self, uuid: &str) -> DbResult<Option<Application>> {
+        let row = sqlx::query_as::<_, Application>(&format!(
+            "SELECT {COLS} FROM applications WHERE uuid = $1"
+        ))
+        .bind(uuid)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
+    pub async fn list_by_environment(&self, environment_id: i64) -> DbResult<Vec<Application>> {
+        let rows = sqlx::query_as::<_, Application>(&format!(
+            "SELECT {COLS} FROM applications WHERE environment_id = $1 ORDER BY id"
+        ))
+        .bind(environment_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    /// Update the container status string (`running`, `exited`, ...) reported
+    /// by the status sync loop (track E).
+    pub async fn set_status(&self, id: i64, status: &str) -> DbResult<()> {
+        sqlx::query("UPDATE applications SET status = $2, updated_at = now() WHERE id = $1")
+            .bind(id)
+            .bind(status)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Record the commit actually built, so a later deploy can pin/rollback.
+    pub async fn set_commit_sha(&self, id: i64, commit_sha: &str) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE applications SET git_commit_sha = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(commit_sha)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn delete(&self, uuid: &str) -> DbResult<bool> {
+        let result = sqlx::query("DELETE FROM applications WHERE uuid = $1")
+            .bind(uuid)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected() == 1)
+    }
+}
