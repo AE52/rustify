@@ -1259,9 +1259,11 @@ version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
+ "base64",
  "chrono",
  "cuid2",
  "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "tokio",
