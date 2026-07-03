@@ -970,6 +970,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/servers/{uuid}/metrics/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["server_metrics_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/servers/{uuid}/metrics/{metric}": {
         parameters: {
             query?: never;
@@ -1859,6 +1875,16 @@ export interface components {
             name: string;
             role: string;
             uuid: string;
+        };
+        /**
+         * @description Freshness of a server's metrics collection: the newest host sample time and
+         *     whether it is stale per [`rustify_deploy::metrics::is_stale`].
+         */
+        MetricsStatus: {
+            /** @description ISO-8601 Zulu timestamp of the newest host sample, or `null` if none. */
+            last_seen?: string | null;
+            /** @description True when no sample is newer than the staleness threshold. */
+            stale: boolean;
         };
         /**
          * @description Read view: channel toggles, non-secret config, secret presence flags, and the
@@ -4889,6 +4915,29 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    server_metrics_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Server uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Metrics freshness */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricsStatus"];
+                };
             };
         };
     };
