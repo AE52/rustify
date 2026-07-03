@@ -280,7 +280,7 @@ async fn enqueue(state: &AppState, uuid: &str, kind: &str) -> ApiResult<Response
     Ok((StatusCode::ACCEPTED, Json(json!({ "status": "accepted" }))).into_response())
 }
 
-#[utoipa::path(post, path = "/services/{uuid}/deploy", tag = "services",
+#[utoipa::path(post, path = "/services/{uuid}/deploy", operation_id = "deploy_service", tag = "services",
     params(("uuid" = String, Path, description = "Service uuid")),
     responses((status = 202, description = "Deploy enqueued")))]
 pub async fn deploy(
@@ -292,7 +292,7 @@ pub async fn deploy(
     enqueue(&state, &ctx.service.uuid, "service_deploy").await
 }
 
-#[utoipa::path(post, path = "/services/{uuid}/stop", tag = "services",
+#[utoipa::path(post, path = "/services/{uuid}/stop", operation_id = "stop_service", tag = "services",
     params(("uuid" = String, Path, description = "Service uuid")),
     responses((status = 202, description = "Stop enqueued")))]
 pub async fn stop(
@@ -304,7 +304,7 @@ pub async fn stop(
     enqueue(&state, &ctx.service.uuid, "service_stop").await
 }
 
-#[utoipa::path(post, path = "/services/{uuid}/restart", tag = "services",
+#[utoipa::path(post, path = "/services/{uuid}/restart", operation_id = "restart_service", tag = "services",
     params(("uuid" = String, Path, description = "Service uuid")),
     responses((status = 202, description = "Restart enqueued")))]
 pub async fn restart(

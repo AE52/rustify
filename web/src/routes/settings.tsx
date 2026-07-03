@@ -5,9 +5,12 @@ import {
   type ApiToken,
   type ApiTokenCreated,
   type InstanceSettings,
+  type S3Storage,
+  type S3TestResponse,
 } from '../api/client'
 import {
   btnDanger,
+  btnGhost,
   btnPrimary,
   cardCls,
   ErrorNote,
@@ -202,11 +205,287 @@ function TokensSection() {
   )
 }
 
+function S3Row({ storage }: { storage: S3Storage }) {
+  const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(storage.name)
+  const [region, setRegion] = useState(storage.region)
+  const [endpoint, setEndpoint] = useState(storage.endpoint ?? '')
+  const [bucket, setBucket] = useState(storage.bucket)
+  const [path, setPath] = useState(storage.path)
+  const [key, setKey] = useState('')
+  const [secret, setSecret] = useState('')
+  const [testResult, setTestResult] = useState<S3TestResponse | null>(null)
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['s3-storages'] })
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch<S3Storage>(`/s3-storages/${storage.uuid}`, {
+        name,
+        region,
+        endpoint: endpoint.trim() || null,
+        bucket,
+        path,
+        key: key.trim() || null,
+        secret: secret.trim() || null,
+      }),
+    onSuccess: () => {
+      setEditing(false)
+      setKey('')
+      setSecret('')
+      invalidate()
+    },
+  })
+
+  const test = useMutation({
+    mutationFn: () => api.post<S3TestResponse>(`/s3-storages/${storage.uuid}/test`),
+    onSuccess: (r) => {
+      setTestResult(r)
+      invalidate()
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/s3-storages/${storage.uuid}`),
+    onSuccess: invalidate,
+  })
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <span className="font-medium text-zinc-100">{storage.name}</span>
+        <span
+          className={`flex items-center gap-1.5 text-xs ${
+            storage.is_usable ? 'text-emerald-400' : 'text-zinc-500'
+          }`}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              storage.is_usable ? 'bg-emerald-400' : 'bg-zinc-500'
+            }`}
+          />
+          {storage.is_usable ? 'usable' : 'untested'}
+        </span>
+        <span className="truncate font-mono text-xs text-zinc-500">
+          {storage.bucket}
+          {storage.endpoint ? ` @ ${storage.endpoint}` : ''}
+        </span>
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            className={`${btnGhost} py-1 text-xs`}
+            disabled={test.isPending}
+            onClick={() => test.mutate()}
+          >
+            {test.isPending ? 'Testing…' : 'Test'}
+          </button>
+          <button
+            type="button"
+            className={`${btnGhost} py-1 text-xs`}
+            onClick={() => setEditing((v) => !v)}
+          >
+            {editing ? 'Cancel' : 'Edit'}
+          </button>
+          <button
+            type="button"
+            className={`${btnDanger} py-1 text-xs`}
+            disabled={remove.isPending}
+            onClick={() => remove.mutate()}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {testResult && (
+        <p className={`text-xs ${testResult.usable ? 'text-emerald-400' : 'text-red-400'}`}>
+          {testResult.message}
+        </p>
+      )}
+      <ErrorNote error={test.error ?? remove.error} />
+
+      {editing && (
+        <form
+          onSubmit={(e: FormEvent) => {
+            e.preventDefault()
+            save.mutate()
+          }}
+          className="mt-1 flex flex-col gap-3"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Name">
+              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <Field label="Region">
+              <input className={inputCls} value={region} onChange={(e) => setRegion(e.target.value)} />
+            </Field>
+            <Field label="Endpoint">
+              <input
+                className={`${inputCls} font-mono`}
+                value={endpoint}
+                onChange={(e) => setEndpoint(e.target.value)}
+              />
+            </Field>
+            <Field label="Bucket">
+              <input className={inputCls} value={bucket} onChange={(e) => setBucket(e.target.value)} />
+            </Field>
+            <Field label="Path">
+              <input className={inputCls} value={path} onChange={(e) => setPath(e.target.value)} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Access key (leave blank to keep)">
+              <input
+                className={`${inputCls} font-mono`}
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Secret key (leave blank to keep)">
+              <input
+                type="password"
+                className={`${inputCls} font-mono`}
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+          <ErrorNote error={save.error} />
+          <button type="submit" className={`${btnPrimary} w-fit`} disabled={save.isPending}>
+            {save.isPending ? 'Saving…' : 'Save'}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
+
+function S3Section() {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState('')
+  const [region, setRegion] = useState('us-east-1')
+  const [endpoint, setEndpoint] = useState('')
+  const [bucket, setBucket] = useState('')
+  const [path, setPath] = useState('/')
+  const [key, setKey] = useState('')
+  const [secret, setSecret] = useState('')
+
+  const storages = useQuery({
+    queryKey: ['s3-storages'],
+    queryFn: () => api.get<S3Storage[]>('/s3-storages'),
+  })
+
+  const create = useMutation({
+    mutationFn: () =>
+      api.post<S3Storage>('/s3-storages', {
+        name,
+        region,
+        endpoint: endpoint.trim() || null,
+        bucket,
+        path,
+        key,
+        secret,
+      }),
+    onSuccess: () => {
+      setName('')
+      setEndpoint('')
+      setBucket('')
+      setPath('/')
+      setKey('')
+      setSecret('')
+      queryClient.invalidateQueries({ queryKey: ['s3-storages'] })
+    },
+  })
+
+  const canSubmit =
+    name.trim() !== '' && bucket.trim() !== '' && key.trim() !== '' && secret.trim() !== '' && !create.isPending
+
+  return (
+    <section className={`${cardCls} flex max-w-2xl flex-col gap-4`}>
+      <SectionTitle>S3 storages</SectionTitle>
+
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault()
+          if (canSubmit) create.mutate()
+        }}
+        className="flex flex-col gap-3"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Name">
+            <input
+              className={inputCls}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="backups"
+            />
+          </Field>
+          <Field label="Region">
+            <input className={inputCls} value={region} onChange={(e) => setRegion(e.target.value)} />
+          </Field>
+          <Field label="Endpoint">
+            <input
+              className={`${inputCls} font-mono`}
+              value={endpoint}
+              onChange={(e) => setEndpoint(e.target.value)}
+              placeholder="https://s3.amazonaws.com"
+            />
+          </Field>
+          <Field label="Bucket">
+            <input
+              className={inputCls}
+              value={bucket}
+              onChange={(e) => setBucket(e.target.value)}
+              placeholder="my-bucket"
+            />
+          </Field>
+          <Field label="Path">
+            <input className={inputCls} value={path} onChange={(e) => setPath(e.target.value)} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Access key">
+            <input
+              className={`${inputCls} font-mono`}
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Secret key">
+            <input
+              type="password"
+              className={`${inputCls} font-mono`}
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              autoComplete="off"
+            />
+          </Field>
+        </div>
+        <ErrorNote error={create.error} />
+        <button type="submit" className={`${btnPrimary} w-fit`} disabled={!canSubmit}>
+          {create.isPending ? 'Adding…' : 'Add S3 storage'}
+        </button>
+      </form>
+
+      <ErrorNote error={storages.error} />
+      <div className="flex flex-col gap-2">
+        {storages.data?.map((s) => <S3Row key={s.uuid} storage={s} />)}
+        {storages.data?.length === 0 && <p className="text-sm text-zinc-500">No S3 storages.</p>}
+      </div>
+    </section>
+  )
+}
+
 export default function Settings() {
   return (
     <div className="flex flex-col gap-8">
       <PageTitle>Settings</PageTitle>
       <InstanceSection />
+      <S3Section />
       <TokensSection />
     </div>
   )

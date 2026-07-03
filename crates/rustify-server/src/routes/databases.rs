@@ -313,7 +313,7 @@ async fn lifecycle(
     Ok((StatusCode::ACCEPTED, Json(json!({ "status": "accepted" }))).into_response())
 }
 
-#[utoipa::path(post, path = "/databases/{uuid}/start", tag = "databases",
+#[utoipa::path(post, path = "/databases/{uuid}/start", operation_id = "start_database", tag = "databases",
     params(("uuid" = String, Path, description = "Database uuid")),
     responses((status = 202, description = "Start enqueued")))]
 pub async fn start(
@@ -324,7 +324,7 @@ pub async fn start(
     lifecycle(&state, &team, &uuid, "database_start").await
 }
 
-#[utoipa::path(post, path = "/databases/{uuid}/stop", tag = "databases",
+#[utoipa::path(post, path = "/databases/{uuid}/stop", operation_id = "stop_database", tag = "databases",
     params(("uuid" = String, Path, description = "Database uuid")),
     responses((status = 202, description = "Stop enqueued")))]
 pub async fn stop(
@@ -335,7 +335,7 @@ pub async fn stop(
     lifecycle(&state, &team, &uuid, "database_stop").await
 }
 
-#[utoipa::path(post, path = "/databases/{uuid}/restart", tag = "databases",
+#[utoipa::path(post, path = "/databases/{uuid}/restart", operation_id = "restart_database", tag = "databases",
     params(("uuid" = String, Path, description = "Database uuid")),
     responses((status = 202, description = "Restart enqueued")))]
 pub async fn restart(

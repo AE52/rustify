@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/applications/{uuid}/scheduled-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_application_scheduled_tasks"];
+        put?: never;
+        post: operations["create_application_scheduled_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/applications/{uuid}/stop": {
         parameters: {
             query?: never;
@@ -206,6 +222,150 @@ export interface paths {
         get: operations["me"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_backup"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_backup"];
+        options?: never;
+        head?: never;
+        patch: operations["update_backup"];
+        trace?: never;
+    };
+    "/backups/{uuid}/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_backup_executions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/backups/{uuid}/trigger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["trigger_backup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_databases"];
+        put?: never;
+        post: operations["create_database"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_database"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_database"];
+        options?: never;
+        head?: never;
+        patch: operations["update_database"];
+        trace?: never;
+    };
+    "/databases/{uuid}/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_backups"];
+        put?: never;
+        post: operations["create_backup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{uuid}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restart_database"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{uuid}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["start_database"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/databases/{uuid}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stop_database"];
         delete?: never;
         options?: never;
         head?: never;
@@ -372,6 +532,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/s3-storages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_s3_storages"];
+        put?: never;
+        post: operations["create_s3_storage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/s3-storages/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_s3_storage"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_s3_storage"];
+        options?: never;
+        head?: never;
+        patch: operations["update_s3_storage"];
+        trace?: never;
+    };
+    "/s3-storages/{uuid}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["test_s3_storage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scheduled-tasks/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_scheduled_task"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_scheduled_task"];
+        options?: never;
+        head?: never;
+        patch: operations["update_scheduled_task"];
+        trace?: never;
+    };
+    "/scheduled-tasks/{uuid}/executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_scheduled_task_executions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/scheduled-tasks/{uuid}/trigger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["trigger"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/servers": {
         parameters: {
             query?: never;
@@ -478,6 +734,134 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_service_templates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service-templates/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_service_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_services"];
+        put?: never;
+        post: operations["create_service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/services/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_service"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_service"];
+        options?: never;
+        head?: never;
+        patch: operations["update_service"];
+        trace?: never;
+    };
+    "/services/{uuid}/deploy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["deploy_service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/services/{uuid}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["restart_service"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/services/{uuid}/scheduled-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_service_scheduled_tasks"];
+        put?: never;
+        post: operations["create_service_scheduled_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/services/{uuid}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["stop_service"];
         delete?: never;
         options?: never;
         head?: never;
@@ -618,8 +1002,132 @@ export interface components {
             start_command?: string | null;
             static_image?: string | null;
         };
+        BackupCreate: {
+            databases_to_backup?: string | null;
+            disable_local_backup?: boolean;
+            dump_all?: boolean;
+            enabled?: boolean;
+            frequency: string;
+            /** Format: int32 */
+            retention_amount_local?: number;
+            /** Format: int32 */
+            retention_amount_s3?: number;
+            /** Format: int32 */
+            retention_days_local?: number;
+            /** Format: int32 */
+            retention_days_s3?: number;
+            /** Format: int32 */
+            retention_max_gb_local?: number;
+            /** Format: int32 */
+            retention_max_gb_s3?: number;
+            s3_storage_uuid?: string | null;
+            save_s3?: boolean;
+        };
+        BackupDto: {
+            /** Format: date-time */
+            created_at: string;
+            database_uuid: string;
+            databases_to_backup?: string | null;
+            disable_local_backup: boolean;
+            dump_all: boolean;
+            enabled: boolean;
+            frequency: string;
+            /** Format: int32 */
+            retention_amount_local: number;
+            /** Format: int32 */
+            retention_amount_s3: number;
+            /** Format: int32 */
+            retention_days_local: number;
+            /** Format: int32 */
+            retention_days_s3: number;
+            /** Format: int32 */
+            retention_max_gb_local: number;
+            /** Format: int32 */
+            retention_max_gb_s3: number;
+            s3_storage_uuid?: string | null;
+            save_s3: boolean;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+        };
+        BackupUpdate: {
+            databases_to_backup?: string | null;
+            disable_local_backup?: boolean | null;
+            dump_all?: boolean | null;
+            enabled?: boolean | null;
+            frequency?: string | null;
+            /** Format: int32 */
+            retention_amount_local?: number | null;
+            /** Format: int32 */
+            retention_amount_s3?: number | null;
+            /** Format: int32 */
+            retention_days_local?: number | null;
+            /** Format: int32 */
+            retention_days_s3?: number | null;
+            /** Format: int32 */
+            retention_max_gb_local?: number | null;
+            /** Format: int32 */
+            retention_max_gb_s3?: number | null;
+            /** @description Empty string detaches the S3 storage; omitted leaves it unchanged. */
+            s3_storage_uuid?: string | null;
+            save_s3?: boolean | null;
+        };
         ContainerLogs: {
             logs: string;
+        };
+        DatabaseCreate: {
+            /**
+             * @description One of `postgresql`, `mysql`, `mariadb`, `mongodb`, `redis`, `keydb`,
+             *     `dragonfly`, `clickhouse`.
+             */
+            engine: string;
+            environment_name: string;
+            /** @description Overrides the engine's default image when set. */
+            image?: string | null;
+            is_public?: boolean;
+            name: string;
+            project_uuid: string;
+            /** Format: int32 */
+            public_port?: number | null;
+            server_uuid: string;
+        };
+        DatabaseDto: {
+            /** Format: date-time */
+            created_at: string;
+            description?: string | null;
+            engine: string;
+            environment_uuid: string;
+            health_check_enabled: boolean;
+            image: string;
+            is_public: boolean;
+            limits_cpus: string;
+            limits_memory: string;
+            name: string;
+            ports_mappings?: string | null;
+            project_uuid: string;
+            /** Format: int32 */
+            public_port?: number | null;
+            /** Format: int32 */
+            public_port_timeout: number;
+            server_uuid: string;
+            status: string;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+        };
+        DatabaseUpdate: {
+            description?: string | null;
+            health_check_enabled?: boolean | null;
+            image?: string | null;
+            is_public?: boolean | null;
+            limits_cpus?: string | null;
+            limits_memory?: string | null;
+            name?: string | null;
+            ports_mappings?: string | null;
+            /** Format: int32 */
+            public_port?: number | null;
+            /** Format: int32 */
+            public_port_timeout?: number | null;
         };
         DeployRequest: {
             force_rebuild?: boolean;
@@ -681,6 +1189,21 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             name: string;
+            uuid: string;
+        };
+        ExecutionDto: {
+            /** Format: date-time */
+            created_at: string;
+            filename?: string | null;
+            /** Format: date-time */
+            finished_at?: string | null;
+            message?: string | null;
+            s3_uploaded?: boolean | null;
+            /** Format: int64 */
+            size: number;
+            /** Format: date-time */
+            started_at: string;
+            status: string;
             uuid: string;
         };
         Health: {
@@ -765,6 +1288,87 @@ export interface components {
         ProxyConfigUpdate: {
             proxy_custom_config?: string | null;
         };
+        S3StorageCreate: {
+            bucket: string;
+            endpoint?: string | null;
+            key: string;
+            name: string;
+            path?: string | null;
+            region?: string | null;
+            secret: string;
+            use_path_style?: boolean | null;
+        };
+        S3StorageDto: {
+            bucket: string;
+            /** Format: date-time */
+            created_at: string;
+            endpoint?: string | null;
+            is_usable: boolean;
+            name: string;
+            path: string;
+            region: string;
+            /** Format: date-time */
+            updated_at: string;
+            use_path_style: boolean;
+            uuid: string;
+        };
+        S3StorageUpdate: {
+            bucket?: string | null;
+            endpoint?: string | null;
+            key?: string | null;
+            name?: string | null;
+            path?: string | null;
+            region?: string | null;
+            secret?: string | null;
+            use_path_style?: boolean | null;
+        };
+        S3TestResponse: {
+            message: string;
+            usable: boolean;
+        };
+        ScheduledTaskCreate: {
+            command: string;
+            container?: string | null;
+            frequency: string;
+            name: string;
+            /** Format: int32 */
+            timeout?: number | null;
+        };
+        ScheduledTaskDto: {
+            command: string;
+            container?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            enabled: boolean;
+            frequency: string;
+            name: string;
+            /** Format: int32 */
+            timeout: number;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+        };
+        ScheduledTaskExecutionDto: {
+            /** Format: int32 */
+            duration?: number | null;
+            error_details?: string | null;
+            /** Format: date-time */
+            finished_at?: string | null;
+            message?: string | null;
+            /** Format: date-time */
+            started_at: string;
+            status: string;
+            uuid: string;
+        };
+        ScheduledTaskUpdate: {
+            command?: string | null;
+            container?: string | null;
+            enabled?: boolean | null;
+            frequency?: string | null;
+            name?: string | null;
+            /** Format: int32 */
+            timeout?: number | null;
+        };
         ServerCreate: {
             ip: string;
             name: string;
@@ -796,6 +1400,60 @@ export interface components {
             port?: number | null;
             private_key_uuid?: string | null;
             user?: string | null;
+        };
+        ServiceApplicationDto: {
+            fqdn?: string | null;
+            image?: string | null;
+            is_database: boolean;
+            name: string;
+            status: string;
+            uuid: string;
+        };
+        ServiceCreate: {
+            environment_name: string;
+            name: string;
+            project_uuid: string;
+            server_uuid: string;
+            template_key: string;
+        };
+        ServiceDto: {
+            applications: components["schemas"]["ServiceApplicationDto"][];
+            /** Format: date-time */
+            created_at: string;
+            environment_uuid: string;
+            name: string;
+            project_uuid: string;
+            server_uuid: string;
+            status: string;
+            template_key: string;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+        };
+        ServiceTemplateDetailDto: {
+            category?: string | null;
+            /** @description Base64 of the compose YAML. */
+            compose_b64: string;
+            documentation: string;
+            key: string;
+            logo?: string | null;
+            name: string;
+            port?: string | null;
+            slogan: string;
+            tags: string[];
+        };
+        ServiceTemplateDto: {
+            category?: string | null;
+            documentation: string;
+            key: string;
+            logo?: string | null;
+            name: string;
+            port?: string | null;
+            slogan: string;
+            tags: string[];
+        };
+        ServiceUpdate: {
+            name?: string | null;
         };
         /**
          * @description A user as returned by the API (contract C5). `id` is the external uuid;
@@ -1248,6 +1906,56 @@ export interface operations {
             };
         };
     };
+    list_application_scheduled_tasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tasks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTaskDto"][];
+                };
+            };
+        };
+    };
+    create_application_scheduled_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduledTaskCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTaskDto"];
+                };
+            };
+        };
+    };
     stop: {
         parameters: {
             query?: never;
@@ -1346,6 +2054,421 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApiErrorBody"];
                 };
+            };
+        };
+    };
+    get_backup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Backup uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The schedule */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_backup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Backup uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_backup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Backup uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    list_backup_executions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Backup uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Execution history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExecutionDto"][];
+                };
+            };
+        };
+    };
+    trigger_backup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Backup uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Backup enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_databases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of databases */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseDto"][];
+                };
+            };
+        };
+    };
+    create_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseCreate"];
+            };
+        };
+        responses: {
+            /** @description Database created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseDto"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    get_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatabaseUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatabaseDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    list_backups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Schedules for the database */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupDto"][];
+                };
+            };
+        };
+    };
+    create_backup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupDto"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    restart_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restart enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    start_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Start enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    stop_database: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stop enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1839,6 +2962,313 @@ export interface operations {
             };
         };
     };
+    list_s3_storages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of S3 storages */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["S3StorageDto"][];
+                };
+            };
+        };
+    };
+    create_s3_storage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["S3StorageCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["S3StorageDto"];
+                };
+            };
+        };
+    };
+    get_s3_storage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description S3 storage uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The storage */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["S3StorageDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_s3_storage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description S3 storage uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_s3_storage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description S3 storage uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["S3StorageUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["S3StorageDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    test_s3_storage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description S3 storage uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connectivity result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["S3TestResponse"];
+                };
+            };
+        };
+    };
+    get_scheduled_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The task */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTaskDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_scheduled_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_scheduled_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduledTaskUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTaskDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    list_scheduled_task_executions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Executions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTaskExecutionDto"][];
+                };
+            };
+        };
+    };
+    trigger: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_servers: {
         parameters: {
             query?: never;
@@ -2123,6 +3553,322 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ValidateResponse"];
                 };
+            };
+        };
+    };
+    list_service_templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Available service templates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceTemplateDto"][];
+                };
+            };
+        };
+    };
+    get_service_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Template key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The template */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceTemplateDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    list_services: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of services */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDto"][];
+                };
+            };
+        };
+    };
+    create_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceCreate"];
+            };
+        };
+        responses: {
+            /** @description Service created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDto"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    get_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The service */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated service */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    deploy_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deploy enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restart_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restart enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_service_scheduled_tasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tasks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTaskDto"][];
+                };
+            };
+        };
+    };
+    create_service_scheduled_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduledTaskCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduledTaskDto"];
+                };
+            };
+        };
+    };
+    stop_service: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Service uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stop enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
