@@ -146,7 +146,7 @@ pub async fn collect_all(deps: &DeployEngineDeps) -> Result<(), DeployError> {
 
         let (host, stats, name_to_uuid) = parse_collection(&out.stdout);
 
-        let _ = metrics_repo
+        if let Err(e) = metrics_repo
             .insert(&MetricSample {
                 server_id,
                 container_uuid: None,
@@ -155,13 +155,16 @@ pub async fn collect_all(deps: &DeployEngineDeps) -> Result<(), DeployError> {
                 mem_used_bytes: host.mem_used_bytes,
                 disk_percent: host.disk_percent,
             })
-            .await;
+            .await
+        {
+            tracing::warn!(error = %e, server = %uuid, server_id, "failed to insert host metrics sample");
+        }
 
         for stat in stats {
             let Some(container_uuid) = name_to_uuid.get(&stat.name) else {
                 continue; // unmanaged / unmapped container: no per-resource row
             };
-            let _ = metrics_repo
+            if let Err(e) = metrics_repo
                 .insert(&MetricSample {
                     server_id,
                     container_uuid: Some(container_uuid.clone()),
@@ -170,7 +173,13 @@ pub async fn collect_all(deps: &DeployEngineDeps) -> Result<(), DeployError> {
                     mem_used_bytes: stat.mem_used_bytes,
                     disk_percent: None,
                 })
-                .await;
+                .await
+            {
+                tracing::warn!(
+                    error = %e, server = %uuid, server_id, container = %container_uuid,
+                    "failed to insert container metrics sample"
+                );
+            }
         }
     }
     Ok(())

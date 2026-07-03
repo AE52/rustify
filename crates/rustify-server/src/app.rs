@@ -104,6 +104,7 @@ pub struct AppState {
         servers::proxy_stop,
         servers::proxy_restart,
         metrics::server_metrics,
+        metrics::server_metrics_status,
         metrics::container_metrics,
         servers::cloudflared_enable,
         servers::cloudflared_disable,
@@ -301,6 +302,7 @@ pub struct AppState {
         teams::TeamUpdate,
         teams::RoleUpdate,
         teams::InvitationCreate,
+        metrics::MetricsStatus,
     )),
     tags(
         (name = "health", description = "Liveness"),
@@ -369,6 +371,10 @@ fn api_router() -> Router<AppState> {
             post(servers::proxy_restart),
         )
         // metrics (server host + per-container time series)
+        .route(
+            "/api/v1/servers/{uuid}/metrics/status",
+            get(metrics::server_metrics_status),
+        )
         .route(
             "/api/v1/servers/{uuid}/metrics/{metric}",
             get(metrics::server_metrics),

@@ -10,14 +10,19 @@
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use chrono::{DateTime, Duration, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-use rustify_db::repos::{MetricColumn, MetricPoint, MetricsRepo};
+use rustify_db::repos::{MetricColumn, MetricPoint, MetricsRepo, ServerRepo};
+use rustify_deploy::metrics::is_stale;
 
 use crate::app::AppState;
 use crate::auth::CurrentTeam;
 use crate::error::{ApiError, ApiResult};
 use crate::routes::servers;
+
+/// Default metrics refresh cadence (seconds) when a server has no settings row.
+const DEFAULT_REFRESH_SECS: i32 = 10;
 
 /// Default look-back when `from` is omitted.
 const DEFAULT_WINDOW_MINUTES: i64 = 60;
@@ -92,6 +97,40 @@ pub async fn server_metrics(
         .host_series(server.id, column, from)
         .await?;
     Ok(shape(series, from))
+}
+
+/// Freshness of a server's metrics collection: the newest host sample time and
+/// whether it is stale per [`rustify_deploy::metrics::is_stale`].
+#[derive(Debug, Serialize, ToSchema)]
+pub struct MetricsStatus {
+    /// ISO-8601 Zulu timestamp of the newest host sample, or `null` if none.
+    pub last_seen: Option<String>,
+    /// True when no sample is newer than the staleness threshold.
+    pub stale: bool,
+}
+
+#[utoipa::path(get, path = "/servers/{uuid}/metrics/status", operation_id = "server_metrics_status",
+    tag = "metrics",
+    params(("uuid" = String, Path, description = "Server uuid")),
+    responses((status = 200, description = "Metrics freshness", body = MetricsStatus)))]
+pub async fn server_metrics_status(
+    State(state): State<AppState>,
+    team: CurrentTeam,
+    Path(uuid): Path<String>,
+) -> ApiResult<Json<MetricsStatus>> {
+    let server = servers::owned(&state, &team, &uuid).await?;
+    let last = MetricsRepo::new(state.pool.clone())
+        .latest_host_ts(server.id)
+        .await?;
+    let refresh = ServerRepo::new(state.pool.clone())
+        .settings(server.id)
+        .await?
+        .map(|s| s.metrics_refresh_rate_seconds)
+        .unwrap_or(DEFAULT_REFRESH_SECS);
+    Ok(Json(MetricsStatus {
+        last_seen: last.map(|ts| ts.to_rfc3339()),
+        stale: is_stale(last, refresh, Utc::now()),
+    }))
 }
 
 #[utoipa::path(get, path = "/containers/{uuid}/metrics/{metric}", operation_id = "container_metrics",
