@@ -8,6 +8,7 @@ pub mod deployments;
 pub mod env_vars;
 pub mod github_apps;
 pub mod keys;
+pub mod notifications;
 pub mod projects;
 pub mod scheduled_tasks;
 pub mod servers;
@@ -27,6 +28,7 @@ pub use deployments::{Deployment, DeploymentRepo, NewDeployment};
 pub use env_vars::{EnvVar, EnvVarRepo, NewEnvVar};
 pub use github_apps::{GithubApp, GithubAppPatch, GithubAppRepo, NewGithubApp};
 pub use keys::{KeyRepo, PrivateKey};
+pub use notifications::{NotificationSettings, NotificationSettingsPatch, NotificationsRepo};
 pub use projects::{Environment, Project, ProjectRepo};
 pub use scheduled_tasks::{
     NewScheduledTask, ScheduledTask, ScheduledTaskExecution, ScheduledTaskPatch, ScheduledTaskRepo,
@@ -85,6 +87,20 @@ pub async fn seed_default(pool: &PgPool) -> DbResult<()> {
         .execute(&mut *tx)
         .await?;
     }
+
+    // Auto-provision the team's notification settings row with the sane-default
+    // event matrix (critical failures opt in on every channel). Idempotent: the
+    // `team_id` unique constraint makes a re-seed a no-op.
+    sqlx::query(
+        "INSERT INTO notification_settings (uuid, team_id, event_matrix)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (team_id) DO NOTHING",
+    )
+    .bind(ids::new_uuid())
+    .bind(team_id)
+    .bind(rustify_core::notify::default_event_matrix())
+    .execute(&mut *tx)
+    .await?;
 
     tx.commit().await?;
     Ok(())
