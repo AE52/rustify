@@ -9,6 +9,7 @@ pub mod health;
 pub mod keys;
 pub mod projects;
 pub mod s3_storages;
+pub mod scheduled_tasks;
 pub mod servers;
 pub mod service_templates;
 pub mod services;

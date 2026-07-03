@@ -20,9 +20,10 @@ use rustify_db::repos::seed_default;
 use rustify_deploy::admission::DEPLOY_JOB_KIND;
 use rustify_deploy::{
     DATABASE_BACKUP_KIND, DatabaseBackupHandler, DeployEngineDeps, DeployJobHandler,
-    SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND, ServerSetupHandler, ServiceDeployHandler,
-    ServiceStopHandler, StartDatabaseHandler, StopDatabaseHandler, backup_dispatcher_task,
-    status_sync_task,
+    SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND, ScheduledTaskHandler,
+    ServerSetupHandler, ServiceDeployHandler, ServiceStopHandler, StartDatabaseHandler,
+    StopDatabaseHandler, backup_dispatcher_task, daily_cleanup_task, docker_cleanup_task,
+    ssh_mux_cleanup_task, status_sync_task, task_dispatcher_task,
 };
 use rustify_jobs::{JobQueue, JobRegistry, Scheduler};
 use rustify_server::app::{AppState, Config};
@@ -37,6 +38,15 @@ const EVENT_CHANNEL_CAP: usize = 1024;
 const STATUS_SYNC_PERIOD: Duration = Duration::from_secs(30);
 /// How often the scheduled-backup dispatcher checks for due schedules.
 const BACKUP_DISPATCH_PERIOD: Duration = Duration::from_secs(60);
+/// The scheduled-task dispatcher ticks per minute (Coolify `ScheduledJobManager`).
+const DISPATCH_PERIOD: Duration = Duration::from_secs(60);
+/// System cron periods: hourly docker cleanup + ssh-mux reap, daily record prune.
+const HOURLY: Duration = Duration::from_secs(3600);
+const DAILY: Duration = Duration::from_secs(86_400);
+/// Retention for the daily record prune.
+const CLEANUP_RETENTION_DAYS: i64 = 7;
+/// Age past which a ControlMaster socket is reaped (matches the mux max age).
+const MUX_STALE_AGE: Duration = Duration::from_secs(3600);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -100,6 +110,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         DATABASE_BACKUP_KIND,
         Arc::new(DatabaseBackupHandler::new(deps.clone())),
     );
+    registry.register(
+        SCHEDULED_TASK_KIND,
+        Arc::new(ScheduledTaskHandler::new(deps.clone())),
+    );
     let worker_handle = {
         let queue = queue.clone();
         let shutdown = shutdown.clone();
@@ -108,13 +122,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
     };
 
-    // Container-status reconciliation sweep every 30s + per-minute backup
-    // dispatcher, both stopped on shutdown.
+    // Background scheduler: container-status sweep (server-health), the
+    // per-minute backup dispatcher, the per-minute scheduled-task dispatcher,
+    // and the system cron set (docker cleanup, ssh-mux reap, daily record
+    // prune). All stop on shutdown.
+    let mux_dir = config.ssh_mux_dir.clone();
+    let cleanup_pool = deps.pool.clone();
     let mut scheduler = Scheduler::new(shutdown.clone());
     scheduler.every(
         BACKUP_DISPATCH_PERIOD,
         "backup_dispatch",
         backup_dispatcher_task(deps.clone()),
+    );
+    scheduler.every(
+        DISPATCH_PERIOD,
+        "task_dispatcher",
+        task_dispatcher_task(deps.clone(), queue.clone()),
+    );
+    scheduler.every(HOURLY, "docker_cleanup", docker_cleanup_task(deps.clone()));
+    scheduler.every(
+        HOURLY,
+        "ssh_mux_cleanup",
+        ssh_mux_cleanup_task(mux_dir, MUX_STALE_AGE),
+    );
+    scheduler.every(
+        DAILY,
+        "daily_cleanup",
+        daily_cleanup_task(cleanup_pool, CLEANUP_RETENTION_DAYS),
     );
     scheduler.every(STATUS_SYNC_PERIOD, "status_sync", status_sync_task(deps));
 
