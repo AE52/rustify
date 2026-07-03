@@ -23,6 +23,29 @@ export type InstanceSettings = Schemas['InstanceSettingsDto']
 export type ApiToken = Schemas['ApiTokenDto']
 export type ApiTokenCreated = Schemas['ApiTokenCreated']
 
+// ----- Phase 2 resources -------------------------------------------------
+export type Database = Schemas['DatabaseDto']
+export type DatabaseCreate = Schemas['DatabaseCreate']
+export type DatabaseUpdate = Schemas['DatabaseUpdate']
+
+export type Service = Schemas['ServiceDto']
+export type ServiceApplication = Schemas['ServiceApplicationDto']
+export type ServiceCreate = Schemas['ServiceCreate']
+export type ServiceTemplate = Schemas['ServiceTemplateDto']
+export type ServiceTemplateDetail = Schemas['ServiceTemplateDetailDto']
+
+export type Backup = Schemas['BackupDto']
+export type BackupCreate = Schemas['BackupCreate']
+export type BackupExecution = Schemas['ExecutionDto']
+
+export type S3Storage = Schemas['S3StorageDto']
+export type S3StorageCreate = Schemas['S3StorageCreate']
+export type S3TestResponse = Schemas['S3TestResponse']
+
+export type ScheduledTask = Schemas['ScheduledTaskDto']
+export type ScheduledTaskCreate = Schemas['ScheduledTaskCreate']
+export type ScheduledTaskExecution = Schemas['ScheduledTaskExecutionDto']
+
 const BASE = '/api/v1'
 
 /** Error envelope per C5: `{"code": "...", "message": "..."}`. */
