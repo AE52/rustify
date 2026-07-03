@@ -20,10 +20,11 @@ use rustify_db::repos::seed_default;
 use rustify_deploy::admission::DEPLOY_JOB_KIND;
 use rustify_deploy::{
     DATABASE_BACKUP_KIND, DatabaseBackupHandler, DeployEngineDeps, DeployJobHandler,
-    SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND, ScheduledTaskHandler,
-    ServerSetupHandler, ServiceDeployHandler, ServiceStopHandler, StartDatabaseHandler,
-    StopDatabaseHandler, backup_dispatcher_task, daily_cleanup_task, docker_cleanup_task,
-    ssh_mux_cleanup_task, status_sync_task, task_dispatcher_task,
+    PREVIEW_CLEANUP_KIND, PreviewCleanupHandler, SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND,
+    SERVICE_STOP_KIND, ScheduledTaskHandler, ServerSetupHandler, ServiceDeployHandler,
+    ServiceStopHandler, StartDatabaseHandler, StopDatabaseHandler, backup_dispatcher_task,
+    daily_cleanup_task, docker_cleanup_task, ssh_mux_cleanup_task, status_sync_task,
+    task_dispatcher_task,
 };
 use rustify_jobs::{JobQueue, JobRegistry, Scheduler};
 use rustify_server::app::{AppState, Config};
@@ -121,6 +122,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     registry.register(
         SCHEDULED_TASK_KIND,
         Arc::new(ScheduledTaskHandler::new(deps.clone())),
+    );
+    registry.register(
+        PREVIEW_CLEANUP_KIND,
+        Arc::new(PreviewCleanupHandler::new(deps.clone())),
     );
     let worker_handle = {
         let queue = queue.clone();

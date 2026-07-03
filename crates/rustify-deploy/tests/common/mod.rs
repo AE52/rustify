@@ -153,6 +153,26 @@ pub async fn queue(pool: &PgPool, app_id: i64, server_id: i64, force_rebuild: bo
             force_rebuild,
             rollback: false,
             config_snapshot: None,
+            pull_request_id: 0,
+            git_type: None,
+        })
+        .await
+        .unwrap()
+}
+
+/// Create a queued PREVIEW deployment for `(app, server)` on pull request `pr`.
+pub async fn queue_preview(pool: &PgPool, app_id: i64, server_id: i64, pr: i32) -> Deployment {
+    DeploymentRepo::new(pool.clone())
+        .create_queued(NewDeployment {
+            application_id: app_id,
+            server_id,
+            commit_sha: Some("deadbeefdeadbeefdeadbeefdeadbeefdeadbeef".into()),
+            commit_message: None,
+            force_rebuild: false,
+            rollback: false,
+            config_snapshot: None,
+            pull_request_id: pr,
+            git_type: Some("github".into()),
         })
         .await
         .unwrap()

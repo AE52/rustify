@@ -584,6 +584,8 @@ pub async fn deploy(
             force_rebuild,
             rollback: false,
             config_snapshot: None,
+            pull_request_id: 0,
+            git_type: None,
         })
         .await?;
 

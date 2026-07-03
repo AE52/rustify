@@ -6,6 +6,7 @@
 rustify.managed=true
 rustify.applicationId=42
 rustify.applicationUuid=app-uuid
+rustify.pullRequestId=0
 rustify.deploymentId=dep-uuid
 traefik.enable=true
 traefik.http.routers.app-uuid.rule=Host(`x.example.com`)

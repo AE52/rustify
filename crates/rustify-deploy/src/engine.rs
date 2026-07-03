@@ -21,14 +21,15 @@ use rustify_core::{
 };
 use rustify_db::repos::{
     Application, ApplicationRepo, Deployment, DeploymentRepo, EnvVar, EnvVarRepo, GithubAppRepo,
-    KeyRepo, Server, ServerRepo,
+    KeyRepo, PreviewRepo, Server, ServerRepo,
 };
 use rustify_docker::{AppComposeInput, HealthCheck, generate_compose, parse_containers};
 use rustify_jobs::JobHandler;
 
 use crate::buildpacks::{self, BuildCtx, Pack};
 use crate::github::{self, GithubAppRow};
-use crate::{DeployEngineDeps, DeployError, admission, envfile, git, rolling};
+use crate::pr_comment::{self, PrCommentState};
+use crate::{DeployEngineDeps, DeployError, admission, envfile, git, preview, rolling};
 
 /// Coolify build-helper image (Contract C7 / brief step 2).
 const HELPER_IMAGE: &str = "ghcr.io/coollabsio/coolify-helper:latest";
@@ -64,6 +65,19 @@ enum GitSource {
         /// The base64-encoded PEM materialised into the helper (a secret).
         b64_key: String,
     },
+}
+
+/// Resolved PR-preview context for a preview deployment (`pull_request_id != 0`).
+struct PreviewCtx {
+    /// The `application_previews` row id.
+    row_id: i64,
+    pull_request_id: i32,
+    /// Templated preview FQDN (used for labels/router + PR-comment link).
+    fqdn: Option<String>,
+    /// The single editable PR issue-comment id (if one already exists).
+    comment_id: Option<i64>,
+    /// Provider (`github`/...), gating the PR-status comment.
+    git_type: Option<String>,
 }
 
 /// [`rustify_jobs::JobHandler`] for kind `"deploy"`, payload `{"deployment_uuid": ".."}`.
@@ -112,6 +126,10 @@ pub async fn run_deployment(
         return Ok(());
     }
 
+    // A preview deploy announces itself on the PR before building.
+    engine.mark_preview_status("in_progress").await;
+    engine.post_pr_comment(PrCommentState::InProgress).await;
+
     // Steps 2-8 (streamed, cancellable). The helper is torn down afterwards no
     // matter how these exit.
     let result = engine.run_steps().await;
@@ -124,15 +142,20 @@ pub async fn run_deployment(
         Ok(()) => {
             engine.set_status(DeploymentStatus::Finished).await?;
             engine.mark_application_status("running").await;
+            engine.mark_preview_status("running").await;
+            engine.post_pr_comment(PrCommentState::Finished).await;
             engine.info("Deployment finished successfully.").await;
         }
         Err(DeployError::Cancelled) => {
             engine.set_status(DeploymentStatus::Cancelled).await?;
+            engine.mark_preview_status("exited").await;
             engine.info("Deployment cancelled.").await;
         }
         Err(e) => {
             engine.error(&format!("Deployment failed: {e}")).await;
             engine.set_status(DeploymentStatus::Failed).await?;
+            engine.mark_preview_status("exited").await;
+            engine.post_pr_comment(PrCommentState::Error).await;
         }
     }
     // Whatever the outcome, a slot may have freed up on this server.
@@ -150,8 +173,15 @@ pub struct Engine {
     application: Application,
     server: Server,
     conn: ServerConn,
+    /// Base destination network (the build helper runs on this).
     network: String,
-    /// Unique per-deploy container name `<app_uuid>-<6 char>` (Contract C7).
+    /// Network the app container joins: the base network for a production
+    /// deploy, or the PR's dedicated `<app_uuid>-<pr>` network for a preview.
+    deploy_network: String,
+    /// PR-preview context when `deployment.pull_request_id != 0`.
+    preview: Option<PreviewCtx>,
+    /// Unique per-deploy container name `<app_uuid>-<6 char>` (Contract C7), or
+    /// the deterministic `<app_uuid>-pr-<pr>` for a preview.
     container_name: String,
     /// Build working dir inside the helper: `/artifacts/<deployment_uuid>`.
     workdir: String,
@@ -221,7 +251,39 @@ impl Engine {
 
         let git_source = resolve_git_source(&deps.pool, &application).await?;
 
-        let container_name = format!("{}-{}", application.uuid, short_id());
+        // Resolve the PR-preview context (naming, dedicated network, templated
+        // FQDN) when this queue row is a preview deploy.
+        let (preview, container_name, deploy_network) = if deployment.pull_request_id != 0 {
+            let pr = deployment.pull_request_id;
+            let preview_repo = PreviewRepo::new(deps.pool.clone());
+            let row = preview_repo
+                .upsert(application.id, pr, None, deployment.git_type.as_deref())
+                .await?;
+            // Generate + persist the templated preview FQDN.
+            let fqdn = preview::expand_preview_fqdn(
+                application.fqdn.as_deref(),
+                &application.preview_url_template,
+                pr as i64,
+                &ids::new_uuid(),
+            );
+            preview_repo.set_fqdn(row.id, fqdn.as_deref()).await?;
+            let ctx = PreviewCtx {
+                row_id: row.id,
+                pull_request_id: pr,
+                fqdn: fqdn.clone(),
+                comment_id: row.pull_request_issue_comment_id,
+                git_type: deployment.git_type.clone(),
+            };
+            let container = preview::preview_container_name(&application.uuid, pr as i64);
+            let net = preview::preview_network(&application.uuid, pr as i64);
+            (Some(ctx), container, net)
+        } else {
+            (
+                None,
+                format!("{}-{}", application.uuid, short_id()),
+                network.clone(),
+            )
+        };
         let workdir = format!("/artifacts/{}", deployment.uuid);
         let app_config_dir = format!("/data/rustify/applications/{}", application.uuid);
 
@@ -235,6 +297,8 @@ impl Engine {
             server,
             conn,
             network,
+            deploy_network,
+            preview,
             container_name,
             workdir,
             app_config_dir,
@@ -258,6 +322,23 @@ impl Engine {
 
     pub(crate) fn application(&self) -> &Application {
         &self.application
+    }
+
+    /// The PR number for a preview deploy, or `0` for production.
+    fn pull_request_id(&self) -> i64 {
+        self.preview
+            .as_ref()
+            .map(|p| p.pull_request_id as i64)
+            .unwrap_or(0)
+    }
+
+    /// The FQDN driving labels/router/env: the templated preview FQDN for a
+    /// preview deploy, otherwise the application's own FQDN.
+    fn effective_fqdn(&self) -> Option<String> {
+        match &self.preview {
+            Some(p) => p.fqdn.clone(),
+            None => self.application.fqdn.clone(),
+        }
     }
 
     // ---- step 1: claim ------------------------------------------------------
@@ -309,7 +390,14 @@ impl Engine {
             _ => {
                 let sha = self.resolve_commit().await?; // step 3
                 self.persist_commit(&sha).await?;
-                let image = format!("{}:{}", self.application.uuid, sha);
+                let image = match &self.preview {
+                    Some(p) => format!(
+                        "{}:{}",
+                        self.application.uuid,
+                        preview::preview_image_tag(p.pull_request_id as i64, &sha)
+                    ),
+                    None => format!("{}:{}", self.application.uuid, sha),
+                };
                 // Step 4: skip build if the image already exists.
                 if self.skip_build(&image).await? {
                     self.info("Image already exists for this commit; skipping build.")
@@ -762,6 +850,8 @@ impl Engine {
         // Ensure the destination directory exists.
         self.exec_step(&format!("mkdir -p {}", self.app_config_dir), true, true)
             .await?;
+        // A preview deploy runs in its own network the proxy must reach.
+        self.ensure_preview_network().await?;
 
         let runtime_env = self.runtime_env_vars();
         let env_body = envfile::render_runtime_env(&runtime_env);
@@ -773,6 +863,29 @@ impl Engine {
     }
 
     // ---- compose buildpack (steps 6-8) --------------------------------------
+
+    /// Create the PR's dedicated network and attach the proxy so Traefik can
+    /// route to the preview container (no-op for a production deploy). Parity
+    /// with Coolify's per-preview compose network + `coolify-proxy` connect.
+    async fn ensure_preview_network(&mut self) -> Result<(), DeployError> {
+        if self.preview.is_none() {
+            return Ok(());
+        }
+        let net = self.deploy_network.clone();
+        self.exec_step(
+            &format!("docker network create {net} 2>/dev/null || true"),
+            true,
+            true,
+        )
+        .await?;
+        self.exec_step(
+            &format!("docker network connect {net} rustify-proxy 2>/dev/null || true"),
+            true,
+            true,
+        )
+        .await?;
+        Ok(())
+    }
 
     async fn deploy_compose(&mut self, sha: &str) -> Result<(), DeployError> {
         self.next_batch();
@@ -813,9 +926,13 @@ impl Engine {
         &mut self,
         except: Option<&str>,
     ) -> Result<(), DeployError> {
+        // Filter by pull request id too so a preview deploy never tears down the
+        // production containers (pr=0) and vice-versa.
         let ps = format!(
-            "docker ps -a --filter label=rustify.applicationUuid={} --format '{{{{json .}}}}'",
-            self.application.uuid
+            "docker ps -a --filter label=rustify.applicationUuid={} \
+             --filter label=rustify.pullRequestId={} --format '{{{{json .}}}}'",
+            self.application.uuid,
+            self.pull_request_id()
         );
         let out = self.exec_step(&ps, true, true).await?;
         let names: Vec<String> = parse_containers(&out.stdout)
@@ -882,6 +999,90 @@ impl Engine {
         ));
     }
 
+    // ---- PR preview status + status comment ---------------------------------
+
+    /// Update the `application_previews` row status (no-op for production).
+    async fn mark_preview_status(&self, status: &str) {
+        if let Some(p) = &self.preview
+            && let Err(e) = PreviewRepo::new(self.deps.pool.clone())
+                .set_status(p.row_id, status)
+                .await
+        {
+            tracing::warn!(error = %e, "failed to update preview status");
+        }
+    }
+
+    /// Fire the GitHub PR-status comment for a preview deploy. Gated to a GitHub
+    /// App source (non-public repo); a failure is logged, never fatal.
+    async fn post_pr_comment(&mut self, state: PrCommentState) {
+        let Some(preview) = &self.preview else { return };
+        if preview.git_type.as_deref() != Some("github") {
+            return;
+        }
+        if self.application.source_type.as_deref() != Some("github_app") {
+            return;
+        }
+        let Some(src_id) = self.application.source_id else {
+            return;
+        };
+        let gh = match GithubAppRepo::new(self.deps.pool.clone())
+            .get_by_id(src_id)
+            .await
+        {
+            Ok(Some(g)) if !g.is_public => g,
+            _ => return, // public repo / missing source: skip (parity with is_public_repository)
+        };
+        let Some(pk_id) = gh.private_key_id else {
+            return;
+        };
+        let pem = match KeyRepo::new(self.deps.pool.clone())
+            .decrypt_private_key(pk_id)
+            .await
+        {
+            Ok(p) => p,
+            Err(_) => return,
+        };
+        let row = GithubAppRow {
+            id: gh.id,
+            app_id: gh.app_id.unwrap_or(0),
+            installation_id: gh.installation_id.unwrap_or(0),
+            api_url: gh.api_url.clone(),
+            private_key_pem: pem,
+        };
+        let fqdn = preview.fqdn.clone();
+        let pr = preview.pull_request_id;
+        let comment_id = preview.comment_id;
+        let row_id = preview.row_id;
+        let name = self.application.name.clone();
+        let repo = self.application.git_repository.clone();
+        match pr_comment::upsert(
+            &self.http,
+            &row,
+            &repo,
+            pr,
+            comment_id,
+            state,
+            &name,
+            fqdn.as_deref(),
+        )
+        .await
+        {
+            Ok(new_id) => {
+                if new_id != comment_id
+                    && let Err(e) = PreviewRepo::new(self.deps.pool.clone())
+                        .set_comment_id(row_id, new_id)
+                        .await
+                {
+                    tracing::warn!(error = %e, "failed to persist PR comment id");
+                }
+                if let Some(p) = &mut self.preview {
+                    p.comment_id = new_id;
+                }
+            }
+            Err(e) => tracing::warn!(error = %e, "failed to post PR status comment"),
+        }
+    }
+
     // ---- env-file helpers ---------------------------------------------------
 
     /// Write `/artifacts/build-time.env` inside the helper, applying the
@@ -923,9 +1124,9 @@ impl Engine {
                 self.container_name.clone(),
             ),
         ];
-        if let Some(fqdn) = &self.application.fqdn {
+        if let Some(fqdn) = self.effective_fqdn() {
             vars.push(("RUSTIFY_FQDN".to_string(), fqdn.clone()));
-            vars.push(("RUSTIFY_URL".to_string(), fqdn.clone()));
+            vars.push(("RUSTIFY_URL".to_string(), fqdn));
         }
         vars
     }
@@ -1007,14 +1208,15 @@ impl Engine {
         AppComposeInput {
             application_id: self.application.id,
             application_uuid: self.application.uuid.clone(),
+            pull_request_id: self.pull_request_id(),
             deployment_uuid: self.deployment.uuid.clone(),
             container_name: self.container_name.clone(),
             service_name: self.container_name.clone(),
             image: image.to_string(),
-            network: self.network.clone(),
+            network: self.deploy_network.clone(),
             ports_exposes,
             ports_mappings,
-            fqdn: self.application.fqdn.clone(),
+            fqdn: self.effective_fqdn(),
             health,
             limits_memory: self.application.limits_memory.clone(),
             limits_cpus: self.application.limits_cpus.clone(),

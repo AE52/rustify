@@ -23,6 +23,7 @@ pub mod railpack;
 pub mod redact;
 pub mod retention;
 pub mod service_vars;
+pub mod webhook;
 
 pub use db_engine::{DatabaseCredentials, DatabaseEngine, EngineDescriptor};
 pub use deployment::{BuildPack, DeploymentStatus};

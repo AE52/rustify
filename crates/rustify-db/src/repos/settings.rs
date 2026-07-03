@@ -14,8 +14,15 @@ pub struct InstanceSettings {
     pub fqdn: Option<String>,
     pub wildcard_domain: Option<String>,
     pub registration_enabled: bool,
+    /// Instance default for allowing preview deployments from public/fork
+    /// contributors (migration 0008).
+    pub is_pr_deployments_public_enabled: bool,
     pub updated_at: DateTime<Utc>,
 }
+
+/// The instance-settings columns shared by the get/update queries.
+const INSTANCE_COLS: &str =
+    "id, fqdn, wildcard_domain, registration_enabled, is_pr_deployments_public_enabled, updated_at";
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize)]
 pub struct ApiToken {
@@ -48,11 +55,11 @@ impl SettingsRepo {
 
     /// Fetch the singleton instance-settings row, creating it on first access.
     pub async fn get(&self) -> DbResult<InstanceSettings> {
-        let row = sqlx::query_as::<_, InstanceSettings>(
+        let row = sqlx::query_as::<_, InstanceSettings>(&format!(
             "INSERT INTO instance_settings (id) VALUES (1)
              ON CONFLICT (id) DO UPDATE SET id = instance_settings.id
-             RETURNING id, fqdn, wildcard_domain, registration_enabled, updated_at",
-        )
+             RETURNING {INSTANCE_COLS}"
+        ))
         .fetch_one(&self.pool)
         .await?;
         Ok(row)
@@ -63,17 +70,20 @@ impl SettingsRepo {
         fqdn: Option<&str>,
         wildcard_domain: Option<&str>,
         registration_enabled: bool,
+        is_pr_deployments_public_enabled: bool,
     ) -> DbResult<InstanceSettings> {
         self.get().await?;
-        let row = sqlx::query_as::<_, InstanceSettings>(
+        let row = sqlx::query_as::<_, InstanceSettings>(&format!(
             "UPDATE instance_settings
-                SET fqdn = $1, wildcard_domain = $2, registration_enabled = $3, updated_at = now()
+                SET fqdn = $1, wildcard_domain = $2, registration_enabled = $3,
+                    is_pr_deployments_public_enabled = $4, updated_at = now()
               WHERE id = 1
-              RETURNING id, fqdn, wildcard_domain, registration_enabled, updated_at",
-        )
+              RETURNING {INSTANCE_COLS}"
+        ))
         .bind(fqdn)
         .bind(wildcard_domain)
         .bind(registration_enabled)
+        .bind(is_pr_deployments_public_enabled)
         .fetch_one(&self.pool)
         .await?;
         Ok(row)

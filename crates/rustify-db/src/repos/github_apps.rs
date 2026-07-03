@@ -150,6 +150,18 @@ impl GithubAppRepo {
         Ok(row)
     }
 
+    /// Look up a GitHub App by its GitHub `app_id` (the App-mode webhook keys on
+    /// `X-GitHub-Hook-Installation-Target-Id`).
+    pub async fn get_by_app_id(&self, app_id: i64) -> DbResult<Option<GithubApp>> {
+        let row = sqlx::query_as::<_, GithubApp>(&format!(
+            "SELECT {COLS} FROM github_apps WHERE app_id = $1 ORDER BY id LIMIT 1"
+        ))
+        .bind(app_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
+
     pub async fn list(&self, team_id: i64) -> DbResult<Vec<GithubApp>> {
         let rows = sqlx::query_as::<_, GithubApp>(&format!(
             "SELECT {COLS} FROM github_apps WHERE team_id = $1 ORDER BY id"

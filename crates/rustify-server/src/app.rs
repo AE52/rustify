@@ -15,6 +15,7 @@ use rustify_jobs::JobQueue;
 use crate::routes::{
     applications, auth, backups, databases, deployments, github_apps, health, keys, notifications,
     projects, s3_storages, scheduled_tasks, servers, service_templates, services, settings, tokens,
+    webhooks,
 };
 use crate::{embed, ws};
 
@@ -424,6 +425,24 @@ fn api_router() -> Router<AppState> {
             get(github_apps::redirect),
         )
         .route("/webhooks/source/github/install", get(github_apps::install))
+        // git-source webhook receivers (unauthenticated; provider-signed)
+        .route("/webhooks/source/github/events", post(webhooks::github_app))
+        .route(
+            "/webhooks/source/github/events/manual",
+            post(webhooks::github_manual),
+        )
+        .route(
+            "/webhooks/source/gitlab/events/manual",
+            post(webhooks::gitlab_manual),
+        )
+        .route(
+            "/webhooks/source/gitea/events/manual",
+            post(webhooks::gitea_manual),
+        )
+        .route(
+            "/webhooks/source/bitbucket/events/manual",
+            post(webhooks::bitbucket_manual),
+        )
         // deployments
         .route("/api/v1/deployments", get(deployments::list))
         .route("/api/v1/deployments/{uuid}", get(deployments::get))

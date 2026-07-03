@@ -17,6 +17,7 @@ pub struct InstanceSettingsDto {
     pub fqdn: Option<String>,
     pub wildcard_domain: Option<String>,
     pub registration_enabled: bool,
+    pub is_pr_deployments_public_enabled: bool,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -24,6 +25,7 @@ pub struct InstanceSettingsUpdate {
     pub fqdn: Option<String>,
     pub wildcard_domain: Option<String>,
     pub registration_enabled: Option<bool>,
+    pub is_pr_deployments_public_enabled: Option<bool>,
 }
 
 #[utoipa::path(get, path = "/settings", operation_id = "get_settings", tag = "settings",
@@ -37,6 +39,7 @@ pub async fn get(
         fqdn: s.fqdn,
         wildcard_domain: s.wildcard_domain,
         registration_enabled: s.registration_enabled,
+        is_pr_deployments_public_enabled: s.is_pr_deployments_public_enabled,
     }))
 }
 
@@ -56,16 +59,21 @@ pub async fn update(
     let registration_enabled = body
         .registration_enabled
         .unwrap_or(current.registration_enabled);
+    let is_pr_deployments_public_enabled = body
+        .is_pr_deployments_public_enabled
+        .unwrap_or(current.is_pr_deployments_public_enabled);
     let updated = repo
         .update(
             fqdn.as_deref(),
             wildcard_domain.as_deref(),
             registration_enabled,
+            is_pr_deployments_public_enabled,
         )
         .await?;
     Ok(Json(InstanceSettingsDto {
         fqdn: updated.fqdn,
         wildcard_domain: updated.wildcard_domain,
         registration_enabled: updated.registration_enabled,
+        is_pr_deployments_public_enabled: updated.is_pr_deployments_public_enabled,
     }))
 }
