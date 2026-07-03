@@ -52,6 +52,22 @@ export type ScheduledTask = Schemas['ScheduledTaskDto']
 export type ScheduledTaskCreate = Schemas['ScheduledTaskCreate']
 export type ScheduledTaskExecution = Schemas['ScheduledTaskExecutionDto']
 
+// ----- Phase 3 resources -------------------------------------------------
+export type GithubApp = Schemas['GithubAppDto']
+export type GithubAppCreate = Schemas['GithubAppCreate']
+export type GithubAppUpdate = Schemas['GithubAppUpdate']
+export type RepositoriesResponse = Schemas['RepositoriesResponse']
+export type BranchesResponse = Schemas['BranchesResponse']
+export type ManifestStateResponse = Schemas['ManifestStateResponse']
+
+export type NotificationSettings = Schemas['NotificationSettingsDto']
+export type NotificationSettingsUpdate = Schemas['NotificationSettingsUpdate']
+export type NotificationTestRequest = Schemas['TestRequest']
+export type NotificationTestResponse = Schemas['TestResponse']
+
+export type Preview = Schemas['PreviewDto']
+export type PreviewRedeployResponse = Schemas['PreviewRedeployResponse']
+
 const BASE = '/api/v1'
 
 /** Error envelope per C5: `{"code": "...", "message": "..."}`. */

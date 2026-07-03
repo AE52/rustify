@@ -132,6 +132,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/applications/{uuid}/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_application_previews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{uuid}/previews/{pr}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["cleanup_application_preview"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/applications/{uuid}/previews/{pr}/redeploy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["redeploy_application_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/applications/{uuid}/restart": {
         parameters: {
             query?: never;
@@ -420,6 +468,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/github-apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_github_apps"];
+        put?: never;
+        post: operations["create_github_app"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/github-apps/{uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_github_app"];
+        put?: never;
+        post?: never;
+        delete: operations["delete_github_app"];
+        options?: never;
+        head?: never;
+        patch: operations["update_github_app"];
+        trace?: never;
+    };
+    "/github-apps/{uuid}/manifest-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint a single-use `state` token for the app-manifest web flow. The UI builds
+         *     the manifest JSON client-side and form-POSTs it to
+         *     `{html_url}/settings/apps/new?state={state}`; GitHub then redirects to
+         *     [`redirect`], which consumes this state to resolve the team + app.
+         */
+        post: operations["github_app_manifest_state"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/github-apps/{uuid}/repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["github_app_repositories"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/github-apps/{uuid}/repositories/{owner}/{repo}/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["github_app_branches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -430,6 +564,38 @@ export interface paths {
         get: operations["health"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_notification_settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["update_notification_settings"];
+        trace?: never;
+    };
+    "/notifications/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["test_notification"];
         delete?: never;
         options?: never;
         head?: never;
@@ -923,12 +1089,23 @@ export interface components {
             fqdn?: string | null;
             git_branch?: string | null;
             git_repository: string;
+            /** @description uuid of the GitHub App source (required when `source = "github_app"`). */
+            github_app_uuid?: string | null;
             install_command?: string | null;
+            /** @description Informational flag for a GitHub App source (private vs public repo). */
+            is_private?: boolean | null;
             name: string;
             ports_exposes?: string | null;
+            /** @description uuid of a private key to clone over SSH as a raw deploy key. */
+            private_key_uuid?: string | null;
             project_uuid: string;
             publish_directory?: string | null;
             server_uuid: string;
+            /**
+             * @description Git source discriminator: `github_app` to deploy a private repo via a
+             *     GitHub App source. Omit for a public/`git@`/`file://` clone.
+             */
+            source?: string | null;
             start_command?: string | null;
             static_image?: string | null;
         };
@@ -1072,6 +1249,9 @@ export interface components {
             s3_storage_uuid?: string | null;
             save_s3?: boolean | null;
         };
+        BranchesResponse: {
+            branches: unknown[];
+        };
         ContainerLogs: {
             logs: string;
         };
@@ -1206,17 +1386,80 @@ export interface components {
             status: string;
             uuid: string;
         };
+        GithubAppCreate: {
+            api_url?: string | null;
+            /** Format: int64 */
+            app_id?: number | null;
+            client_id?: string | null;
+            client_secret?: string | null;
+            /** Format: int32 */
+            custom_port?: number | null;
+            custom_user?: string | null;
+            html_url?: string | null;
+            /** Format: int64 */
+            installation_id?: number | null;
+            is_public?: boolean | null;
+            is_system_wide?: boolean | null;
+            name: string;
+            organization?: string | null;
+            /** @description uuid of an existing private key holding the App's RSA PEM. */
+            private_key_uuid?: string | null;
+            webhook_secret?: string | null;
+        };
+        /** @description A GitHub App as returned by the API (secrets elided). */
+        GithubAppDto: {
+            api_url: string;
+            /** Format: int64 */
+            app_id?: number | null;
+            client_id?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: int32 */
+            custom_port: number;
+            custom_user: string;
+            html_url: string;
+            /** Format: int64 */
+            installation_id?: number | null;
+            is_public: boolean;
+            is_system_wide: boolean;
+            name: string;
+            organization?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+        };
+        GithubAppUpdate: {
+            api_url?: string | null;
+            /** Format: int64 */
+            app_id?: number | null;
+            client_id?: string | null;
+            client_secret?: string | null;
+            /** Format: int32 */
+            custom_port?: number | null;
+            custom_user?: string | null;
+            html_url?: string | null;
+            /** Format: int64 */
+            installation_id?: number | null;
+            is_public?: boolean | null;
+            is_system_wide?: boolean | null;
+            name?: string | null;
+            organization?: string | null;
+            private_key_uuid?: string | null;
+            webhook_secret?: string | null;
+        };
         Health: {
             /** @description Always `"ok"`. */
             status: string;
         };
         InstanceSettingsDto: {
             fqdn?: string | null;
+            is_pr_deployments_public_enabled: boolean;
             registration_enabled: boolean;
             wildcard_domain?: string | null;
         };
         InstanceSettingsUpdate: {
             fqdn?: string | null;
+            is_pr_deployments_public_enabled?: boolean | null;
             registration_enabled?: boolean | null;
             wildcard_domain?: string | null;
         };
@@ -1238,6 +1481,96 @@ export interface components {
         };
         LoginResponse: {
             user: components["schemas"]["UserDto"];
+        };
+        ManifestStateResponse: {
+            /**
+             * @description Single-use `state` token to embed in the app-manifest form POST; the
+             *     redirect handler consumes it to resolve the team + app.
+             */
+            state: string;
+        };
+        /**
+         * @description Read view: channel toggles, non-secret config, secret presence flags, and the
+         *     event matrix. No secret value is ever included.
+         */
+        NotificationSettingsDto: {
+            discord_enabled: boolean;
+            discord_ping_enabled: boolean;
+            discord_webhook_url_configured: boolean;
+            email_enabled: boolean;
+            event_matrix: unknown;
+            pushover_api_token_configured: boolean;
+            pushover_enabled: boolean;
+            pushover_user_key_configured: boolean;
+            resend_api_key_configured: boolean;
+            resend_enabled: boolean;
+            slack_enabled: boolean;
+            slack_webhook_url_configured: boolean;
+            smtp_encryption?: string | null;
+            smtp_from_address?: string | null;
+            smtp_from_name?: string | null;
+            smtp_host_configured: boolean;
+            smtp_password_configured: boolean;
+            /** Format: int32 */
+            smtp_port?: number | null;
+            smtp_recipients?: string | null;
+            smtp_username_configured: boolean;
+            telegram_chat_id_configured: boolean;
+            telegram_enabled: boolean;
+            telegram_token_configured: boolean;
+            webhook_enabled: boolean;
+            webhook_url_configured: boolean;
+        };
+        /**
+         * @description Partial update. Secret fields are write-only: `null`/absent leaves them
+         *     unchanged, `""` clears them, and any other value (re-)encrypts and stores it.
+         */
+        NotificationSettingsUpdate: {
+            discord_enabled?: boolean | null;
+            discord_ping_enabled?: boolean | null;
+            discord_webhook_url?: string | null;
+            email_enabled?: boolean | null;
+            event_matrix?: unknown;
+            pushover_api_token?: string | null;
+            pushover_enabled?: boolean | null;
+            pushover_user_key?: string | null;
+            resend_api_key?: string | null;
+            resend_enabled?: boolean | null;
+            slack_enabled?: boolean | null;
+            slack_webhook_url?: string | null;
+            smtp_encryption?: string | null;
+            smtp_from_address?: string | null;
+            smtp_from_name?: string | null;
+            smtp_host?: string | null;
+            smtp_password?: string | null;
+            /** Format: int32 */
+            smtp_port?: number | null;
+            smtp_recipients?: string | null;
+            smtp_username?: string | null;
+            telegram_chat_id?: string | null;
+            telegram_enabled?: boolean | null;
+            telegram_token?: string | null;
+            webhook_enabled?: boolean | null;
+            webhook_url?: string | null;
+        };
+        /** @description A PR preview as returned by the API. */
+        PreviewDto: {
+            /** Format: date-time */
+            created_at: string;
+            fqdn?: string | null;
+            git_type?: string | null;
+            /** Format: date-time */
+            last_online_at?: string | null;
+            pull_request_html_url?: string | null;
+            /** Format: int32 */
+            pull_request_id: number;
+            status: string;
+            /** Format: date-time */
+            updated_at: string;
+            uuid: string;
+        };
+        PreviewRedeployResponse: {
+            deployment_uuid: string;
         };
         PrivateKeyCreate: {
             name: string;
@@ -1287,6 +1620,9 @@ export interface components {
         };
         ProxyConfigUpdate: {
             proxy_custom_config?: string | null;
+        };
+        RepositoriesResponse: {
+            repositories: unknown[];
         };
         S3StorageCreate: {
             bucket: string;
@@ -1454,6 +1790,14 @@ export interface components {
         };
         ServiceUpdate: {
             name?: string | null;
+        };
+        TestRequest: {
+            /** @description One of `email`, `discord`, `telegram`, `slack`, `pushover`, `webhook`. */
+            channel: string;
+        };
+        TestResponse: {
+            message: string;
+            sent: boolean;
         };
         /**
          * @description A user as returned by the API (contract C5). `id` is the external uuid;
@@ -1881,6 +2225,95 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContainerLogs"];
+                };
+            };
+        };
+    };
+    list_application_previews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PR previews */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewDto"][];
+                };
+            };
+        };
+    };
+    cleanup_application_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+                /** @description Pull request id */
+                pr: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview cleanup enqueued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    redeploy_application_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Application uuid */
+                uuid: string;
+                /** @description Pull request id */
+                pr: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Preview deployment queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewRedeployResponse"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
                 };
             };
         };
@@ -2575,6 +3008,239 @@ export interface operations {
             };
         };
     };
+    list_github_apps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of GitHub apps */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubAppDto"][];
+                };
+            };
+        };
+    };
+    create_github_app: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GithubAppCreate"];
+            };
+        };
+        responses: {
+            /** @description GitHub app created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubAppDto"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    get_github_app: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description GitHub app uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The GitHub app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubAppDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    delete_github_app: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description GitHub app uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    update_github_app: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description GitHub app uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GithubAppUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated GitHub app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GithubAppDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    github_app_manifest_state: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description GitHub app uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Manifest setup state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManifestStateResponse"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    github_app_repositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description GitHub app uuid */
+                uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Repositories */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoriesResponse"];
+                };
+            };
+        };
+    };
+    github_app_branches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description GitHub app uuid */
+                uuid: string;
+                /** @description Repository owner */
+                owner: string;
+                /** @description Repository name */
+                repo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchesResponse"];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -2591,6 +3257,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    get_notification_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Notification settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationSettingsDto"];
+                };
+            };
+        };
+    };
+    update_notification_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationSettingsDto"];
+                };
+            };
+        };
+    };
+    test_notification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestRequest"];
+            };
+        };
+        responses: {
+            /** @description Test delivery result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResponse"];
                 };
             };
         };
