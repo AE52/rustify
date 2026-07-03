@@ -5,9 +5,9 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
-use rustify_core::ids;
+use rustify_core::{crypto, ids};
 
-use crate::DbResult;
+use crate::{DbError, DbResult};
 
 /// A full row of the `applications` table.
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize)]
@@ -59,6 +59,12 @@ pub struct Application {
     pub private_key_id: Option<i64>,
     /// Provider-side repository id (used by webhook matching).
     pub repository_project_id: Option<i64>,
+    /// Whether PR preview deployments are enabled (Coolify `isPRDeployable`).
+    pub is_pr_deployments_enabled: bool,
+    /// Whether previews from public/fork contributors are allowed (per-app).
+    pub is_pr_deployments_public_enabled: bool,
+    /// Template for a preview FQDN (default `{{pr_id}}.{{domain}}`).
+    pub preview_url_template: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -116,6 +122,7 @@ const COLS: &str = "id, uuid, environment_id, destination_id, name, fqdn, git_re
      health_check_timeout, health_check_retries, health_check_start_period, limits_memory, \
      limits_cpus, custom_docker_run_options, status, restart_count, max_restart_count, \
      source_type, source_id, private_key_id, repository_project_id, \
+     is_pr_deployments_enabled, is_pr_deployments_public_enabled, preview_url_template, \
      created_at, updated_at";
 
 #[derive(Clone)]
@@ -297,5 +304,85 @@ impl ApplicationRepo {
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected() == 1)
+    }
+
+    // ---- webhook matching (migration 0006/0008) -----------------------------
+
+    /// App-mode webhook match (Webhook/Github.php `normal`): applications wired
+    /// to `source_id` with the provider repository id `repository_project_id`,
+    /// on the branch `git_branch`, whose source is a private GitHub App.
+    pub async fn list_by_source_repo_branch(
+        &self,
+        source_id: i64,
+        repository_project_id: i64,
+        git_branch: &str,
+    ) -> DbResult<Vec<Application>> {
+        let rows = sqlx::query_as::<_, Application>(&format!(
+            "SELECT {COLS} FROM applications
+              WHERE source_id = $1
+                AND repository_project_id = $2
+                AND git_branch = $3"
+        ))
+        .bind(source_id)
+        .bind(repository_project_id)
+        .bind(git_branch)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    /// Manual-mode webhook candidates: all applications on `git_branch` (the
+    /// caller narrows by canonical `owner/repo` match + manual secret).
+    pub async fn list_by_branch(&self, git_branch: &str) -> DbResult<Vec<Application>> {
+        let rows = sqlx::query_as::<_, Application>(&format!(
+            "SELECT {COLS} FROM applications WHERE git_branch = $1"
+        ))
+        .bind(git_branch)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    /// Resolve the destination server id for an application (webhook enqueue
+    /// needs it to create the queued deployment).
+    pub async fn server_id(&self, application_id: i64) -> DbResult<Option<i64>> {
+        let id: Option<i64> = sqlx::query_scalar(
+            "SELECT d.server_id FROM applications a
+               JOIN destinations d ON d.id = a.destination_id
+              WHERE a.id = $1",
+        )
+        .bind(application_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(id)
+    }
+
+    /// Decrypt a per-provider manual webhook secret (`github`/`gitlab`/`gitea`/
+    /// `bitbucket`), or `None` when unset. Never logged by callers.
+    pub async fn decrypt_manual_webhook_secret(
+        &self,
+        id: i64,
+        provider: &str,
+    ) -> DbResult<Option<String>> {
+        let column = match provider {
+            "github" => "manual_webhook_secret_github_enc",
+            "gitlab" => "manual_webhook_secret_gitlab_enc",
+            "gitea" => "manual_webhook_secret_gitea_enc",
+            "bitbucket" => "manual_webhook_secret_bitbucket_enc",
+            _ => return Ok(None),
+        };
+        let enc: Option<Vec<u8>> =
+            sqlx::query_scalar(&format!("SELECT {column} FROM applications WHERE id = $1"))
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?
+                .flatten();
+        match enc {
+            Some(bytes) => {
+                let plain = crypto::decrypt(&bytes)?;
+                Ok(Some(String::from_utf8(plain).map_err(|_| DbError::Utf8)?))
+            }
+            None => Ok(None),
+        }
     }
 }

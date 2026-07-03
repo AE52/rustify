@@ -35,6 +35,7 @@ pub fn traefik_labels(app: &AppComposeInput) -> Vec<String> {
         "rustify.managed=true".to_string(),
         format!("rustify.applicationId={}", app.application_id),
         format!("rustify.applicationUuid={}", uuid),
+        format!("rustify.pullRequestId={}", app.pull_request_id),
         format!("rustify.deploymentId={}", app.deployment_uuid),
         "traefik.enable=true".to_string(),
     ];
@@ -73,6 +74,7 @@ mod tests {
         AppComposeInput {
             application_id: 42,
             application_uuid: "app-uuid".to_string(),
+            pull_request_id: 0,
             deployment_uuid: "dep-uuid".to_string(),
             container_name: "app-uuid-abc123".to_string(),
             service_name: "app-uuid-abc123".to_string(),
@@ -109,6 +111,7 @@ mod tests {
                 "rustify.managed=true",
                 "rustify.applicationId=42",
                 "rustify.applicationUuid=app-uuid",
+                "rustify.pullRequestId=0",
                 "rustify.deploymentId=dep-uuid",
                 "traefik.enable=true",
             ]

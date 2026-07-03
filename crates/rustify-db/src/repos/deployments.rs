@@ -30,6 +30,10 @@ pub struct Deployment {
     pub force_rebuild: bool,
     pub rollback: bool,
     pub config_snapshot: Option<Value>,
+    /// PR number for a PREVIEW deploy; `0` for the production path (migration 0008).
+    pub pull_request_id: i32,
+    /// Provider (`github`/`gitlab`/`gitea`/`bitbucket`) for a preview deploy.
+    pub git_type: Option<String>,
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
@@ -45,10 +49,14 @@ pub struct NewDeployment {
     pub force_rebuild: bool,
     pub rollback: bool,
     pub config_snapshot: Option<Value>,
+    /// PR number for a PREVIEW deploy; `0` (default) is a production deploy.
+    pub pull_request_id: i32,
+    pub git_type: Option<String>,
 }
 
 const COLS: &str = "id, uuid, application_id, server_id, status, commit_sha, commit_message, \
-     force_rebuild, rollback, config_snapshot, started_at, finished_at, created_at";
+     force_rebuild, rollback, config_snapshot, pull_request_id, git_type, \
+     started_at, finished_at, created_at";
 
 #[derive(Clone)]
 pub struct DeploymentRepo {
@@ -66,8 +74,8 @@ impl DeploymentRepo {
         let row = sqlx::query_as::<_, Deployment>(&format!(
             "INSERT INTO deployments
                (uuid, application_id, server_id, status, commit_sha, commit_message,
-                force_rebuild, rollback, config_snapshot)
-             VALUES ($1, $2, $3, 'queued', $4, $5, $6, $7, $8)
+                force_rebuild, rollback, config_snapshot, pull_request_id, git_type)
+             VALUES ($1, $2, $3, 'queued', $4, $5, $6, $7, $8, $9, $10)
              RETURNING {COLS}"
         ))
         .bind(&uuid)
@@ -78,9 +86,36 @@ impl DeploymentRepo {
         .bind(new.force_rebuild)
         .bind(new.rollback)
         .bind(new.config_snapshot)
+        .bind(new.pull_request_id)
+        .bind(new.git_type)
         .fetch_one(&self.pool)
         .await?;
         Ok(row)
+    }
+
+    /// Cancel every QUEUED/IN_PROGRESS deployment for `(application_id,
+    /// pull_request_id)` (a PR was closed), returning the cancelled rows so the
+    /// caller can log + kill their helper containers. Parity with Coolify's
+    /// `CleanupPreviewDeployment::cancelActiveDeployments`.
+    pub async fn cancel_active_for_pr(
+        &self,
+        application_id: i64,
+        pull_request_id: i32,
+    ) -> DbResult<Vec<Deployment>> {
+        let rows = sqlx::query_as::<_, Deployment>(&format!(
+            "UPDATE deployments
+                SET status = 'cancelled',
+                    finished_at = now()
+              WHERE application_id = $1
+                AND pull_request_id = $2
+                AND status IN ('queued', 'in_progress')
+              RETURNING {COLS}"
+        ))
+        .bind(application_id)
+        .bind(pull_request_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
     }
 
     /// Attempt the state transition `_ -> next`, enforcing contract C2

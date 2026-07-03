@@ -9,6 +9,7 @@ pub mod env_vars;
 pub mod github_apps;
 pub mod keys;
 pub mod notifications;
+pub mod previews;
 pub mod projects;
 pub mod scheduled_tasks;
 pub mod servers;
@@ -29,6 +30,7 @@ pub use env_vars::{EnvVar, EnvVarRepo, NewEnvVar};
 pub use github_apps::{GithubApp, GithubAppPatch, GithubAppRepo, NewGithubApp};
 pub use keys::{KeyRepo, PrivateKey};
 pub use notifications::{NotificationSettings, NotificationSettingsPatch, NotificationsRepo};
+pub use previews::{ApplicationPreview, PreviewRepo};
 pub use projects::{Environment, Project, ProjectRepo};
 pub use scheduled_tasks::{
     NewScheduledTask, ScheduledTask, ScheduledTaskExecution, ScheduledTaskPatch, ScheduledTaskRepo,

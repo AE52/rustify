@@ -442,16 +442,17 @@ pub fn store_setup_state(
     raw
 }
 
-/// Consume (single-use) a setup state, enforcing action + team + TTL.
-fn consume_setup_state(
-    state: &str,
-    action: &str,
-    team_id: i64,
-    now: DateTime<Utc>,
-) -> Option<SetupState> {
+/// Consume (single-use) a setup state, enforcing action + TTL and returning the
+/// cached payload (which carries the `team_id`).
+///
+/// GitHub's browser redirect to `/webhooks/source/github/{redirect,install}`
+/// carries no API token, so the team is resolved from the cached setup-state
+/// (keyed by the random `state` param) rather than from a `CurrentTeam`
+/// extractor — the wave-1 seam fix.
+fn consume_setup_state(state: &str, action: &str, now: DateTime<Utc>) -> Option<SetupState> {
     let mut map = state_map().lock().ok()?;
     let payload = map.remove(&setup_state_key(state))?;
-    if payload.action != action || payload.team_id != team_id || payload.expires_at <= now {
+    if payload.action != action || payload.expires_at <= now {
         return None;
     }
     Some(payload)
@@ -472,19 +473,19 @@ pub struct RedirectQuery {
 /// private key, then redirect back to the app's UI page.
 pub async fn redirect(
     State(state): State<AppState>,
-    team: CurrentTeam,
     Query(q): Query<RedirectQuery>,
 ) -> ApiResult<Response> {
     if q.code.is_empty() {
         return Err(ApiError::Validation("missing manifest code".into()));
     }
     let payload =
-        consume_setup_state(&q.state, "manifest", team.id, Utc::now()).ok_or(ApiError::NotFound)?;
+        consume_setup_state(&q.state, "manifest", Utc::now()).ok_or(ApiError::NotFound)?;
+    let team_id = payload.team_id;
     let repo = GithubAppRepo::new(state.pool.clone());
     let gh = repo
         .get_by_id(payload.github_app_id)
         .await?
-        .filter(|g| g.team_id == team.id)
+        .filter(|g| g.team_id == team_id)
         .ok_or(ApiError::NotFound)?;
 
     let api_url = gh.api_url.trim_end_matches('/');
@@ -529,7 +530,7 @@ pub async fn redirect(
 
     // Store the RSA PEM as a private key (no SSH public key — RSA JWT only).
     let key = KeyRepo::new(state.pool.clone())
-        .create(team.id, &format!("github-app-{slug}"), pem, "")
+        .create(team_id, &format!("github-app-{slug}"), pem, "")
         .await?;
     repo.set_manifest_credentials(
         &gh.uuid,
@@ -559,7 +560,6 @@ pub struct InstallQuery {
 /// App's own credentials (Webhook/Github.php::install), then persist it.
 pub async fn install(
     State(state): State<AppState>,
-    team: CurrentTeam,
     Query(q): Query<InstallQuery>,
 ) -> ApiResult<Response> {
     if q.setup_action != "install" && q.setup_action != "update" {
@@ -569,13 +569,13 @@ pub async fn install(
         .installation_id
         .parse()
         .map_err(|_| ApiError::Validation("missing installation_id".into()))?;
-    let payload =
-        consume_setup_state(&q.state, "install", team.id, Utc::now()).ok_or(ApiError::NotFound)?;
+    let payload = consume_setup_state(&q.state, "install", Utc::now()).ok_or(ApiError::NotFound)?;
+    let team_id = payload.team_id;
     let repo = GithubAppRepo::new(state.pool.clone());
     let gh = repo
         .get_by_id(payload.github_app_id)
         .await?
-        .filter(|g| g.team_id == team.id)
+        .filter(|g| g.team_id == team_id)
         .ok_or(ApiError::NotFound)?;
 
     // Verify the installation belongs to this App (githubInstallationBelongsToApp).
@@ -620,20 +620,18 @@ mod tests {
     }
 
     #[test]
-    fn setup_state_is_single_use_and_ttl_enforced() {
+    fn setup_state_is_single_use_and_action_enforced() {
         let now = Utc::now();
         let raw = store_setup_state("install", 7, 3, now);
-        // wrong action / team is rejected
-        assert!(consume_setup_state(&raw, "manifest", 3, now).is_none());
-        // re-store since the wrong-action consume above removed it
+        // wrong action is rejected
+        assert!(consume_setup_state(&raw, "manifest", now).is_none());
         let raw = store_setup_state("install", 7, 3, now);
-        assert!(consume_setup_state(&raw, "install", 99, now).is_none());
-        let raw = store_setup_state("install", 7, 3, now);
-        // correct consume succeeds exactly once
-        let got = consume_setup_state(&raw, "install", 3, now).expect("first consume");
+        // correct consume succeeds exactly once and carries the team id
+        let got = consume_setup_state(&raw, "install", now).expect("first consume");
         assert_eq!(got.github_app_id, 7);
+        assert_eq!(got.team_id, 3);
         assert!(
-            consume_setup_state(&raw, "install", 3, now).is_none(),
+            consume_setup_state(&raw, "install", now).is_none(),
             "single use"
         );
     }
@@ -643,7 +641,7 @@ mod tests {
         let now = Utc::now();
         let raw = store_setup_state("manifest", 1, 1, now);
         assert!(
-            consume_setup_state(&raw, "manifest", 1, now + Duration::minutes(61)).is_none(),
+            consume_setup_state(&raw, "manifest", now + Duration::minutes(61)).is_none(),
             "state older than 60 minutes is rejected"
         );
     }

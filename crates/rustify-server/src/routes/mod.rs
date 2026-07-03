@@ -17,3 +17,4 @@ pub mod service_templates;
 pub mod services;
 pub mod settings;
 pub mod tokens;
+pub mod webhooks;

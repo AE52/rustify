@@ -56,3 +56,5 @@ e2e = []
 tokio = { workspace = true, features = ["full"] }
 tokio-tungstenite = "0.24"
 reqwest = { version = "0.12", default-features = false, features = ["json", "cookies"] }
+# Compute webhook signatures in the webhook route tests.
+hmac = { workspace = true }

@@ -41,6 +41,9 @@ impl HealthCheck {
 pub struct AppComposeInput {
     pub application_id: i64,
     pub application_uuid: String,
+    /// PR number for a preview container; `0` for a production container. Emitted
+    /// as the `rustify.pullRequestId` label so cleanup/status can target previews.
+    pub pull_request_id: i64,
     pub deployment_uuid: String,
     /// `{app_uuid}-{6char}` per Contract C7.
     pub container_name: String,
@@ -158,6 +161,7 @@ mod tests {
         AppComposeInput {
             application_id: 42,
             application_uuid: "app-uuid".to_string(),
+            pull_request_id: 0,
             deployment_uuid: "dep-uuid".to_string(),
             container_name: "app-uuid-abc123".to_string(),
             service_name: "app-uuid-abc123".to_string(),
@@ -212,6 +216,7 @@ mod tests {
         let app = AppComposeInput {
             application_id: 1,
             application_uuid: "minimal".to_string(),
+            pull_request_id: 0,
             deployment_uuid: "dep".to_string(),
             container_name: "minimal-xyz789".to_string(),
             service_name: "minimal-xyz789".to_string(),
