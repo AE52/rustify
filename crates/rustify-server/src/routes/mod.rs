@@ -8,6 +8,7 @@ pub mod deployments;
 pub mod github_apps;
 pub mod health;
 pub mod keys;
+pub mod metrics;
 pub mod notifications;
 pub mod previews;
 pub mod projects;

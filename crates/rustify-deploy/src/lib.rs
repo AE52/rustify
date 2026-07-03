@@ -34,6 +34,7 @@ pub mod engine;
 pub mod envfile;
 pub mod git;
 pub mod github;
+pub mod metrics;
 pub mod pr_comment;
 pub mod preview;
 pub mod preview_cleanup;
@@ -50,6 +51,7 @@ pub use backup::{
 };
 pub use database::{StartDatabaseHandler, StopDatabaseHandler, start_database, stop_database};
 pub use engine::{DeployJobHandler, run_deployment};
+pub use metrics::{metrics_collector_task, metrics_retention_task};
 pub use preview_cleanup::{PREVIEW_CLEANUP_KIND, PreviewCleanupHandler, cleanup_preview};
 pub use scheduled_task::{
     SCHEDULED_TASK_KIND, ScheduledTaskHandler, dispatch_due_tasks, run_scheduled_task,

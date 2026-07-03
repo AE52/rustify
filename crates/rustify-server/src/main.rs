@@ -23,8 +23,8 @@ use rustify_deploy::{
     PREVIEW_CLEANUP_KIND, PreviewCleanupHandler, SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND,
     SERVICE_STOP_KIND, ScheduledTaskHandler, ServerSetupHandler, ServiceDeployHandler,
     ServiceStopHandler, StartDatabaseHandler, StopDatabaseHandler, backup_dispatcher_task,
-    daily_cleanup_task, docker_cleanup_task, ssh_mux_cleanup_task, status_sync_task,
-    task_dispatcher_task,
+    daily_cleanup_task, docker_cleanup_task, metrics_collector_task, metrics_retention_task,
+    ssh_mux_cleanup_task, status_sync_task, task_dispatcher_task,
 };
 use rustify_jobs::{JobQueue, JobRegistry, Scheduler};
 use rustify_server::app::{AppState, Config};
@@ -37,6 +37,9 @@ const JOB_WORKERS: usize = 4;
 const EVENT_CHANNEL_CAP: usize = 1024;
 /// How often the container-status reconciliation sweep runs (Coolify: 30s).
 const STATUS_SYNC_PERIOD: Duration = Duration::from_secs(30);
+/// Metrics pull cadence; per-server refresh rates larger than this are honoured
+/// inside the sweep (a server is skipped until its own interval elapses).
+const METRICS_PERIOD: Duration = Duration::from_secs(10);
 /// How often the scheduled-backup dispatcher checks for due schedules.
 const BACKUP_DISPATCH_PERIOD: Duration = Duration::from_secs(60);
 /// The scheduled-task dispatcher ticks per minute (Coolify `ScheduledJobManager`).
@@ -162,6 +165,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         DAILY,
         "daily_cleanup",
         daily_cleanup_task(cleanup_pool, CLEANUP_RETENTION_DAYS),
+    );
+    scheduler.every(
+        METRICS_PERIOD,
+        "metrics_collector",
+        metrics_collector_task(deps.clone()),
+    );
+    scheduler.every(
+        DAILY,
+        "metrics_retention",
+        metrics_retention_task(deps.clone()),
     );
     scheduler.every(STATUS_SYNC_PERIOD, "status_sync", status_sync_task(deps));
 
