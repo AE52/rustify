@@ -117,9 +117,16 @@ pub struct ReqwestSender {
 
 impl ReqwestSender {
     pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
+        // Disable redirect-following: `webhook::is_safe_url` validates the
+        // *initial* target's resolved IPs, but reqwest would otherwise follow up
+        // to 10 redirects to an unvalidated (possibly internal) host. With
+        // `Policy::none()` a 30x is returned verbatim and never chased (SSRF
+        // defense-in-depth alongside the resolve-and-block URL guard).
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap_or_default();
+        Self { client }
     }
 }
 
@@ -704,5 +711,57 @@ mod tests {
     fn ignores_unrelated_events() {
         let ev = WsEvent::application_status_changed("a1", "running");
         assert!(map_ws_event(&ev).is_none());
+    }
+
+    /// The webhook client must NOT follow redirects: a 30x from a (validated)
+    /// public host must not be chased to a second, unvalidated host. Each
+    /// connection replies `302` + `Connection: close`, so a followed redirect
+    /// would open a *second* TCP connection; `Policy::none()` keeps it at one.
+    #[tokio::test]
+    async fn webhook_client_does_not_follow_redirects() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let connections = Arc::new(AtomicUsize::new(0));
+        let seen = connections.clone();
+
+        let server = tokio::spawn(async move {
+            loop {
+                let accept =
+                    tokio::time::timeout(std::time::Duration::from_millis(400), listener.accept())
+                        .await;
+                let Ok(Ok((mut sock, _))) = accept else { break };
+                seen.fetch_add(1, Ordering::SeqCst);
+                let mut buf = [0u8; 2048];
+                let _ = sock.read(&mut buf).await;
+                // Redirect back to this same listener: a followed redirect would
+                // (because of `Connection: close`) open a second connection here.
+                let resp = format!(
+                    "HTTP/1.1 302 Found\r\nLocation: http://{addr}/next\r\n\
+                     Connection: close\r\nContent-Length: 0\r\n\r\n"
+                );
+                let _ = sock.write_all(resp.as_bytes()).await;
+                let _ = sock.flush().await;
+            }
+        });
+
+        let sender = ReqwestSender::new();
+        let url = format!("http://{addr}/start");
+        let _ = sender
+            .post_json(Channel::Webhook, &url, serde_json::json!({ "x": 1 }))
+            .await;
+        // Allow time for any (erroneous) redirect follow to reconnect.
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        server.abort();
+
+        assert_eq!(
+            connections.load(Ordering::SeqCst),
+            1,
+            "the webhook client must not follow the redirect"
+        );
     }
 }

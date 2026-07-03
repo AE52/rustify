@@ -6,7 +6,7 @@
 //! not a loopback/link-local/private/internal host. The task tightens Coolify's
 //! rule (which permits private IPs for self-hosting) to also drop private ranges.
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs};
 
 use serde_json::{Map, Value};
 
@@ -30,10 +30,14 @@ pub fn build(event_slug: &str, payload: &NotifPayload) -> Value {
 }
 
 /// Whether `raw` is safe to POST to: an http(s) URL whose host is not a
-/// loopback, link-local, private, unspecified, or obviously-internal target.
-/// Bare-hostname (non-IP-literal) destinations are allowed — they are resolved
-/// by the HTTP client at send time, and this guard blocks the direct-literal
-/// SSRF vectors (`127.0.0.1`, `::1`, `169.254.169.254`, `10.x`, `localhost`).
+/// loopback, link-local, private, unique-local, unspecified, or
+/// obviously-internal target. A bare DNS hostname is resolved (std
+/// [`ToSocketAddrs`]) and rejected if it resolves to no address, to any
+/// private/loopback/link-local/ULA/v4-mapped IP, or if resolution fails — so a
+/// hostname that points at an internal address cannot slip past the guard
+/// (defends the `169.254.169.254`-behind-a-name SSRF vector). The webhook client
+/// additionally disables redirects, so a public host cannot 30x-bounce to an
+/// internal one after this check.
 pub fn is_safe_url(raw: &str) -> bool {
     let Ok(url) = reqwest::Url::parse(raw) else {
         return false;
@@ -46,15 +50,32 @@ pub fn is_safe_url(raw: &str) -> bool {
     };
     // `host_str` keeps IPv6 brackets; strip them for parsing.
     let host = host.trim_start_matches('[').trim_end_matches(']');
-    let lower = host.to_ascii_lowercase();
-    if lower == "localhost" || lower.ends_with(".internal") || lower.ends_with(".local") {
+    if !host_name_allowed(host) {
         return false;
     }
-    match host.parse::<IpAddr>() {
-        Ok(ip) => is_public_ip(ip),
-        // A DNS name — allow it (cannot resolve here without a DNS lookup).
-        Err(_) => true,
+    // An IP literal is checked directly; a DNS name is resolved and every
+    // returned address must be public.
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        return is_public_ip(ip);
     }
+    let port = url.port_or_known_default().unwrap_or(443);
+    match (host, port).to_socket_addrs() {
+        Ok(addrs) => resolved_ips_public(&addrs.map(|a| a.ip()).collect::<Vec<_>>()),
+        // Resolution failure ⇒ reject (fail closed).
+        Err(_) => false,
+    }
+}
+
+/// Reject obviously-internal names before any DNS lookup.
+fn host_name_allowed(host: &str) -> bool {
+    let lower = host.to_ascii_lowercase();
+    !(lower == "localhost" || lower.ends_with(".internal") || lower.ends_with(".local"))
+}
+
+/// A host is safe only if it resolved to at least one address and every
+/// resolved address is a public IP.
+fn resolved_ips_public(ips: &[IpAddr]) -> bool {
+    !ips.is_empty() && ips.iter().all(|ip| is_public_ip(*ip))
 }
 
 fn is_public_ip(ip: IpAddr) -> bool {
@@ -134,14 +155,62 @@ mod tests {
     }
 
     #[test]
-    fn allows_public_hosts_and_ips() {
+    fn allows_public_ip_literals() {
+        // IP-literal destinations need no DNS lookup and are deterministic.
         for good in [
-            "https://example.com/hook",
-            "https://hooks.slack.com/services/x",
             "http://8.8.8.8/hook",
+            "https://1.1.1.1/hook",
             "https://[2606:4700:4700::1111]/hook",
         ] {
             assert!(is_safe_url(good), "{good} must be allowed");
         }
+    }
+
+    #[test]
+    fn resolved_private_or_internal_ips_are_rejected() {
+        // A hostname that resolves to any private/loopback/link-local/ULA/
+        // v4-mapped address is rejected, regardless of the (public) name.
+        for bad in [
+            "10.0.0.5",
+            "127.0.0.1",
+            "169.254.169.254",
+            "192.168.1.10",
+            "172.16.4.2",
+            "0.0.0.0",
+        ] {
+            let ip: IpAddr = bad.parse().unwrap();
+            assert!(
+                !resolved_ips_public(&[ip]),
+                "a hostname resolving to {bad} must be rejected"
+            );
+        }
+        // v6 loopback / link-local / unique-local / v4-mapped-private.
+        for bad in ["::1", "fe80::1", "fd00::1", "::ffff:10.0.0.1"] {
+            let ip: IpAddr = bad.parse().unwrap();
+            assert!(!resolved_ips_public(&[ip]), "{bad} must be rejected");
+        }
+    }
+
+    #[test]
+    fn resolution_to_no_address_is_rejected() {
+        // Empty resolution set (fail closed).
+        assert!(!resolved_ips_public(&[]));
+    }
+
+    #[test]
+    fn public_resolved_ips_are_allowed() {
+        assert!(resolved_ips_public(&["8.8.8.8".parse().unwrap()]));
+        assert!(resolved_ips_public(&["2606:4700:4700::1111"
+            .parse()
+            .unwrap()]));
+    }
+
+    #[test]
+    fn unresolvable_hostname_is_rejected() {
+        // `.invalid` is reserved to never resolve (RFC 6761): resolution fails,
+        // so the guard must fail closed.
+        assert!(!is_safe_url(
+            "https://this-host-does-not-exist.invalid/hook"
+        ));
     }
 }
