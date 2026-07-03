@@ -19,8 +19,9 @@ use rustify_db::pool::MIGRATOR;
 use rustify_db::repos::seed_default;
 use rustify_deploy::admission::DEPLOY_JOB_KIND;
 use rustify_deploy::{
-    DeployEngineDeps, DeployJobHandler, SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND, ServerSetupHandler,
-    ServiceDeployHandler, ServiceStopHandler, StartDatabaseHandler, StopDatabaseHandler,
+    DATABASE_BACKUP_KIND, DatabaseBackupHandler, DeployEngineDeps, DeployJobHandler,
+    SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND, ServerSetupHandler, ServiceDeployHandler,
+    ServiceStopHandler, StartDatabaseHandler, StopDatabaseHandler, backup_dispatcher_task,
     status_sync_task,
 };
 use rustify_jobs::{JobQueue, JobRegistry, Scheduler};
@@ -34,6 +35,8 @@ const JOB_WORKERS: usize = 4;
 const EVENT_CHANNEL_CAP: usize = 1024;
 /// How often the container-status reconciliation sweep runs (Coolify: 30s).
 const STATUS_SYNC_PERIOD: Duration = Duration::from_secs(30);
+/// How often the scheduled-backup dispatcher checks for due schedules.
+const BACKUP_DISPATCH_PERIOD: Duration = Duration::from_secs(60);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -93,6 +96,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         SERVICE_STOP_KIND,
         Arc::new(ServiceStopHandler::new(deps.clone())),
     );
+    registry.register(
+        DATABASE_BACKUP_KIND,
+        Arc::new(DatabaseBackupHandler::new(deps.clone())),
+    );
     let worker_handle = {
         let queue = queue.clone();
         let shutdown = shutdown.clone();
@@ -101,8 +108,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
     };
 
-    // Container-status reconciliation sweep every 30s, stopped on shutdown.
+    // Container-status reconciliation sweep every 30s + per-minute backup
+    // dispatcher, both stopped on shutdown.
     let mut scheduler = Scheduler::new(shutdown.clone());
+    scheduler.every(
+        BACKUP_DISPATCH_PERIOD,
+        "backup_dispatch",
+        backup_dispatcher_task(deps.clone()),
+    );
     scheduler.every(STATUS_SYNC_PERIOD, "status_sync", status_sync_task(deps));
 
     let state = AppState {
