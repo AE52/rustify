@@ -10,6 +10,7 @@ rustify-core = { path = "../rustify-core" }
 rustify-db = { path = "../rustify-db" }
 rustify-docker = { path = "../rustify-docker" }
 rustify-proxy = { path = "../rustify-proxy" }
+rustify-ssh = { path = "../rustify-ssh" }
 rustify-jobs = { path = "../rustify-jobs" }
 anyhow = "1"
 async-trait = { workspace = true }

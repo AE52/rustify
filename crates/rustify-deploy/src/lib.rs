@@ -28,7 +28,9 @@ use tokio::sync::broadcast;
 
 pub mod admission;
 pub mod backup;
+pub mod build_server;
 pub mod buildpacks;
+pub mod cloudflared;
 pub mod database;
 pub mod engine;
 pub mod envfile;
@@ -48,6 +50,14 @@ pub mod system_cron;
 pub use backup::{
     DATABASE_BACKUP_KIND, DatabaseBackupHandler, backup_dispatcher_task, cron_is_due,
     dispatch_due_backups, run_backup,
+};
+pub use build_server::{
+    BuildTargets, plan_build_targets, pull_image_command, push_image_command, push_then_pull,
+    registry_image_ref,
+};
+pub use cloudflared::{
+    CONFIGURE_CLOUDFLARED_KIND, ConfigureCloudflaredHandler, cloudflared_compose,
+    configure_cloudflared, disable_cloudflared,
 };
 pub use database::{StartDatabaseHandler, StopDatabaseHandler, start_database, stop_database};
 pub use engine::{DeployJobHandler, run_deployment};
