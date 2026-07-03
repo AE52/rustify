@@ -13,8 +13,8 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, backups, databases, deployments, health, keys, projects, s3_storages,
-    scheduled_tasks, servers, service_templates, services, settings, tokens,
+    applications, auth, backups, databases, deployments, github_apps, health, keys, projects,
+    s3_storages, scheduled_tasks, servers, service_templates, services, settings, tokens,
 };
 use crate::{embed, ws};
 
@@ -125,6 +125,13 @@ pub struct AppState {
         deployments::list,
         deployments::get,
         deployments::cancel,
+        github_apps::list,
+        github_apps::create,
+        github_apps::get,
+        github_apps::update,
+        github_apps::delete,
+        github_apps::repositories,
+        github_apps::branches,
         databases::list,
         databases::create,
         databases::get,
@@ -204,6 +211,11 @@ pub struct AppState {
         deployments::DeploymentDto,
         deployments::LogLineDto,
         deployments::DeploymentDetailDto,
+        github_apps::GithubAppDto,
+        github_apps::GithubAppCreate,
+        github_apps::GithubAppUpdate,
+        github_apps::RepositoriesResponse,
+        github_apps::BranchesResponse,
         databases::DatabaseDto,
         databases::DatabaseCreate,
         databases::DatabaseUpdate,
@@ -239,6 +251,7 @@ pub struct AppState {
         (name = "projects", description = "Projects and environments"),
         (name = "applications", description = "Applications, deploys, env vars, logs"),
         (name = "deployments", description = "Deployments"),
+        (name = "github-apps", description = "GitHub App sources"),
         (name = "databases", description = "Standalone databases"),
         (name = "backups", description = "Scheduled database backups"),
         (name = "s3-storages", description = "S3-compatible backup storage"),
@@ -378,6 +391,31 @@ fn api_router() -> Router<AppState> {
                 .delete(s3_storages::delete),
         )
         .route("/api/v1/s3-storages/{uuid}/test", post(s3_storages::test))
+        // github apps
+        .route(
+            "/api/v1/github-apps",
+            get(github_apps::list).post(github_apps::create),
+        )
+        .route(
+            "/api/v1/github-apps/{uuid}",
+            get(github_apps::get)
+                .patch(github_apps::update)
+                .delete(github_apps::delete),
+        )
+        .route(
+            "/api/v1/github-apps/{uuid}/repositories",
+            get(github_apps::repositories),
+        )
+        .route(
+            "/api/v1/github-apps/{uuid}/repositories/{owner}/{repo}/branches",
+            get(github_apps::branches),
+        )
+        // github app-manifest web flow (not part of the /api/v1 OpenAPI surface)
+        .route(
+            "/webhooks/source/github/redirect",
+            get(github_apps::redirect),
+        )
+        .route("/webhooks/source/github/install", get(github_apps::install))
         // deployments
         .route("/api/v1/deployments", get(deployments::list))
         .route("/api/v1/deployments/{uuid}", get(deployments::get))

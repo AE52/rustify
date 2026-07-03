@@ -41,6 +41,8 @@ rand = { workspace = true }
 async-trait = { workspace = true }
 ssh-key = { version = "0.6", features = ["ed25519"] }
 futures-util = "0.3"
+# GitHub REST calls for repository/branch listing and the app-manifest web flow.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 [features]
 # End-to-end harness in tests/e2e.rs. Off by default so the normal workspace

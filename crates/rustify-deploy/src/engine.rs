@@ -8,6 +8,8 @@
 //! cancel) by the explicit `cleanup` in [`run_deployment`].
 
 use async_trait::async_trait;
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64;
 use chrono::Utc;
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -18,13 +20,14 @@ use rustify_core::{
     DeploymentStatus, ExecEvent, ExecOpts, ExecOutput, LogLine, ServerConn, ids, redact,
 };
 use rustify_db::repos::{
-    Application, ApplicationRepo, Deployment, DeploymentRepo, EnvVar, EnvVarRepo, KeyRepo, Server,
-    ServerRepo,
+    Application, ApplicationRepo, Deployment, DeploymentRepo, EnvVar, EnvVarRepo, GithubAppRepo,
+    KeyRepo, Server, ServerRepo,
 };
 use rustify_docker::{AppComposeInput, HealthCheck, generate_compose, parse_containers};
 use rustify_jobs::JobHandler;
 
 use crate::buildpacks::{self, BuildCtx, Pack};
+use crate::github::{self, GithubAppRow};
 use crate::{DeployEngineDeps, DeployError, admission, envfile, git, rolling};
 
 /// Coolify build-helper image (Contract C7 / brief step 2).
@@ -35,6 +38,33 @@ const BUILD_TIME_ENV: &str = "/artifacts/build-time.env";
 const RUNTIME_ENV_HELPER: &str = "/artifacts/runtime.env";
 /// The env-var `resource_kind` discriminator for applications.
 const APP_RESOURCE_KIND: &str = "application";
+
+/// The resolved git source for a deployment (parity with Coolify's
+/// `deploymentType()` + `customRepository()`), computed once in [`Engine::prepare`].
+///
+/// - [`GitSource::Public`] — a public HTTPS / `git@` / `file://` clone (Phase 1).
+/// - [`GitSource::GithubApp`] — a private repo behind a GitHub App installation
+///   token (minted lazily at clone time).
+/// - [`GitSource::DeployKey`] — a private repo reached over SSH with a raw
+///   deploy key materialised into the build helper.
+enum GitSource {
+    Public {
+        url: String,
+    },
+    GithubApp {
+        scheme: String,
+        host: String,
+        /// `owner/repo` (Coolify `customRepository`).
+        repo: String,
+        app: GithubAppRow,
+    },
+    DeployKey {
+        repository: String,
+        port: i32,
+        /// The base64-encoded PEM materialised into the helper (a secret).
+        b64_key: String,
+    },
+}
 
 /// [`rustify_jobs::JobHandler`] for kind `"deploy"`, payload `{"deployment_uuid": ".."}`.
 pub struct DeployJobHandler {
@@ -137,6 +167,15 @@ pub struct Engine {
     batch: i32,
     /// Per-command timeout (server `dynamic_timeout`).
     timeout_secs: u32,
+    /// Resolved git source (public / GitHub App / deploy key).
+    git_source: GitSource,
+    /// HTTP client for GitHub installation-token exchange.
+    http: reqwest::Client,
+    /// Memoised url-encoded GitHub installation token for this deploy, so the
+    /// ls-remote and clone steps reuse one mint. `None` until first needed.
+    gh_enc_token: Option<String>,
+    /// Whether the deploy key has already been materialised into the helper.
+    deploy_key_ready: bool,
 }
 
 impl Engine {
@@ -180,6 +219,8 @@ impl Engine {
 
         let conn = build_conn(&deps.pool, &server, connection_timeout).await;
 
+        let git_source = resolve_git_source(&deps.pool, &application).await?;
+
         let container_name = format!("{}-{}", application.uuid, short_id());
         let workdir = format!("/artifacts/{}", deployment.uuid);
         let app_config_dir = format!("/data/rustify/applications/{}", application.uuid);
@@ -202,6 +243,10 @@ impl Engine {
             order: 0,
             batch: 1,
             timeout_secs,
+            git_source,
+            http: reqwest::Client::new(),
+            gh_enc_token: None,
+            deploy_key_ready: false,
         })
     }
 
@@ -311,10 +356,8 @@ impl Engine {
     async fn resolve_commit(&mut self) -> Result<String, DeployError> {
         self.next_batch();
         self.info("Resolving commit from the git remote.").await;
-        let cmd = self.in_helper(&git::ls_remote_command(
-            &self.application.git_repository,
-            &self.application.git_branch,
-        ));
+        self.prepare_git_auth().await?;
+        let cmd = self.ls_remote_cmd().await?;
         let out = self.exec_step(&cmd, true, true).await?;
         let sha = git::parse_commit_sha(&out.stdout)
             .or_else(|| {
@@ -360,11 +403,8 @@ impl Engine {
             self.application.git_repository, self.application.git_branch
         ))
         .await;
-        let clone = self.in_helper(&git::clone_command(
-            &self.application.git_repository,
-            &self.application.git_branch,
-            &self.workdir,
-        ));
+        self.prepare_git_auth().await?;
+        let clone = self.clone_cmd().await?;
         self.exec_step(&clone, true, false).await?;
 
         let msg_cmd = self.in_helper(&git::commit_message_command(&self.workdir));
@@ -379,6 +419,122 @@ impl Engine {
         }
         let _ = sha;
         Ok(())
+    }
+
+    // ---- private-repo git auth (GitHub App token / deploy key) --------------
+
+    /// Materialise any credentials the resolved [`GitSource`] needs before a git
+    /// command runs, and register the secret material for log redaction. For a
+    /// deploy key this writes the 0600 key into the helper (once); for a GitHub
+    /// App it mints (and caches) the installation token. Never logs the secret.
+    async fn prepare_git_auth(&mut self) -> Result<(), DeployError> {
+        enum Action {
+            None,
+            DeployKey(String),
+            GithubApp(GithubAppRow),
+        }
+        let action = match &self.git_source {
+            GitSource::Public { .. } => Action::None,
+            GitSource::DeployKey { b64_key, .. } if !self.deploy_key_ready => {
+                Action::DeployKey(b64_key.clone())
+            }
+            GitSource::DeployKey { .. } => Action::None,
+            GitSource::GithubApp { app, .. } if self.gh_enc_token.is_none() => {
+                Action::GithubApp(app.clone())
+            }
+            GitSource::GithubApp { .. } => Action::None,
+        };
+
+        match action {
+            Action::None => {}
+            Action::DeployKey(b64) => {
+                // Redact the base64 key from every subsequent log line.
+                self.secrets.push(b64.clone());
+                let key_path = git::deploy_key_path(&self.deployment.uuid);
+                for cmd in git::deploy_key_materialise_commands(&key_path, &b64) {
+                    let wrapped = self.in_helper_bash(&cmd);
+                    self.exec_step(&wrapped, true, false).await?;
+                }
+                self.deploy_key_ready = true;
+            }
+            Action::GithubApp(app) => {
+                let now = Utc::now();
+                // Optional clock-skew guard (github.php:17-29); best-effort.
+                let _ = github::check_clock_skew(&self.http, &app.api_url, now).await;
+                let token = github::installation_token(&self.http, &app, now)
+                    .await
+                    .map_err(|e| DeployError::Build(format!("github app token: {e}")))?;
+                let enc = git::urlencode(&token);
+                // Redact both the raw token and its url-encoded form.
+                self.secrets.push(token);
+                self.secrets.push(enc.clone());
+                self.gh_enc_token = Some(enc);
+            }
+        }
+        Ok(())
+    }
+
+    /// Build the (helper-wrapped) `git ls-remote` command for the resolved source.
+    async fn ls_remote_cmd(&mut self) -> Result<String, DeployError> {
+        let branch = self.application.git_branch.clone();
+        Ok(match &self.git_source {
+            GitSource::Public { url } => self.in_helper(&git::ls_remote_command(url, &branch)),
+            GitSource::DeployKey {
+                repository, port, ..
+            } => {
+                let key_path = git::deploy_key_path(&self.deployment.uuid);
+                let cmd = git::deploy_key_ls_remote_command(repository, *port, &key_path, &branch);
+                self.in_helper_bash(&cmd)
+            }
+            GitSource::GithubApp {
+                scheme, host, repo, ..
+            } => {
+                let enc = self
+                    .gh_enc_token
+                    .clone()
+                    .ok_or_else(|| DeployError::Build("github token not prepared".into()))?;
+                let cmd = git::github_app_ls_remote_command(scheme, host, repo, &branch, &enc);
+                self.in_helper_bash(&cmd)
+            }
+        })
+    }
+
+    /// Build the (helper-wrapped) `git clone` command for the resolved source.
+    /// Shallow single-branch, into the deployment workdir.
+    async fn clone_cmd(&mut self) -> Result<String, DeployError> {
+        let branch = self.application.git_branch.clone();
+        let base = self.workdir.clone();
+        Ok(match &self.git_source {
+            GitSource::Public { url } => self.in_helper(&git::clone_command(url, &branch, &base)),
+            GitSource::DeployKey {
+                repository, port, ..
+            } => {
+                let key_path = git::deploy_key_path(&self.deployment.uuid);
+                let cmd = git::deploy_key_clone_command(
+                    repository, *port, &key_path, &branch, true, &base,
+                );
+                self.in_helper_bash(&cmd)
+            }
+            GitSource::GithubApp {
+                scheme, host, repo, ..
+            } => {
+                let enc = self
+                    .gh_enc_token
+                    .clone()
+                    .ok_or_else(|| DeployError::Build("github token not prepared".into()))?;
+                let cmd =
+                    git::github_app_clone_command(scheme, host, repo, &branch, &enc, true, &base);
+                self.in_helper_bash(&cmd)
+            }
+        })
+    }
+
+    /// `docker exec <helper> bash -c '<cmd>'` (single-quote escaped, parity with
+    /// Coolify's `executeInDocker`). Used for git commands that embed their own
+    /// single/double quotes (`-c 'url...'`, `GIT_SSH_COMMAND="ssh ..."`).
+    fn in_helper_bash(&self, cmd: &str) -> String {
+        let escaped = cmd.replace('\'', "'\\''");
+        format!("docker exec {} bash -c '{}'", self.deployment.uuid, escaped)
     }
 
     // ---- step 6 -------------------------------------------------------------
@@ -923,6 +1079,87 @@ async fn load_application(
     repo.get_by_uuid(&uuid)
         .await?
         .ok_or_else(|| DeployError::Missing(format!("application {uuid}")))
+}
+
+/// Resolve the git source for an application (parity with Coolify's
+/// `deploymentType()`): a raw deploy key takes precedence, then a GitHub App
+/// source, otherwise a public clone. The private-key PEM / installation-token
+/// material is loaded here (decrypted) but never logged.
+async fn resolve_git_source(
+    pool: &sqlx::PgPool,
+    application: &Application,
+) -> Result<GitSource, DeployError> {
+    // A real deploy key (private_key_id) always wins (deploymentType == 'deploy_key').
+    if let Some(pk_id) = application.private_key_id {
+        let pem = KeyRepo::new(pool.clone())
+            .decrypt_private_key(pk_id)
+            .await
+            .map_err(|e| DeployError::Missing(format!("deploy key {pk_id}: {e}")))?;
+        return Ok(GitSource::DeployKey {
+            repository: application.git_repository.clone(),
+            port: 22,
+            b64_key: BASE64.encode(pem.as_bytes()),
+        });
+    }
+
+    // A GitHub App source (deploymentType == 'source').
+    if application.source_type.as_deref() == Some("github_app")
+        && let Some(src_id) = application.source_id
+    {
+        let gh = GithubAppRepo::new(pool.clone())
+            .get_by_id(src_id)
+            .await?
+            .ok_or_else(|| DeployError::Missing(format!("github app {src_id}")))?;
+
+        if gh.is_public {
+            // Public GitHub-App repo: unauthenticated {html_url}/{repo}.git clone.
+            let url = format!(
+                "{}/{}.git",
+                gh.html_url.trim_end_matches('/'),
+                application.git_repository
+            );
+            return Ok(GitSource::Public { url });
+        }
+
+        let pk_id = gh.private_key_id.ok_or_else(|| {
+            DeployError::Missing("github app has no private key configured".into())
+        })?;
+        let pem = KeyRepo::new(pool.clone())
+            .decrypt_private_key(pk_id)
+            .await
+            .map_err(|e| DeployError::Missing(format!("github app key: {e}")))?;
+        let (scheme, host) = parse_scheme_host(&gh.html_url);
+        return Ok(GitSource::GithubApp {
+            scheme,
+            host,
+            repo: application.git_repository.clone(),
+            app: GithubAppRow {
+                id: gh.id,
+                app_id: gh.app_id.unwrap_or(0),
+                installation_id: gh.installation_id.unwrap_or(0),
+                api_url: gh.api_url.clone(),
+                private_key_pem: pem,
+            },
+        });
+    }
+
+    Ok(GitSource::Public {
+        url: application.git_repository.clone(),
+    })
+}
+
+/// Split an `html_url` (e.g. `https://github.com`) into `(scheme, host)`.
+fn parse_scheme_host(html_url: &str) -> (String, String) {
+    match html_url.split_once("://") {
+        Some((scheme, rest)) => {
+            let host = rest.split('/').next().unwrap_or(rest).to_string();
+            (scheme.to_string(), host)
+        }
+        None => (
+            "https".to_string(),
+            html_url.trim_end_matches('/').to_string(),
+        ),
+    }
 }
 
 async fn load_server(

@@ -33,6 +33,7 @@ pub mod database;
 pub mod engine;
 pub mod envfile;
 pub mod git;
+pub mod github;
 pub mod rolling;
 pub mod scheduled_task;
 pub mod server_setup;

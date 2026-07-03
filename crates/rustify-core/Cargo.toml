@@ -16,6 +16,9 @@ chrono = { workspace = true }
 croner = "2.2"
 cuid2 = { workspace = true }
 hmac = { workspace = true }
+# RS256 signing for the GitHub App JWT (bootstrap/helpers/github.php
+# generateGithubToken). Pinned here so this crate owns the dependency.
+jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
 rand = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

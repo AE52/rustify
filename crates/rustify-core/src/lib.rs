@@ -14,6 +14,7 @@ pub mod deployment;
 pub mod error;
 pub mod events;
 pub mod exec;
+pub mod github_jwt;
 pub mod ids;
 pub mod logline;
 pub mod passwords;
