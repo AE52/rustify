@@ -3,6 +3,7 @@
 
 pub mod applications;
 pub mod backups;
+pub mod cloud_tokens;
 pub mod databases;
 pub mod deployments;
 pub mod env_vars;
@@ -25,6 +26,7 @@ pub use backups::{
     S3Credentials, S3Storage, S3StoragePatch, S3StorageRepo, ScheduledBackup, ScheduledBackupPatch,
     ScheduledBackupRepo,
 };
+pub use cloud_tokens::{CloudProviderToken, CloudTokenRepo};
 pub use databases::{DatabasePatch, DatabaseRepo, NewDatabase, StandaloneDatabase};
 pub use deployments::{Deployment, DeploymentRepo, NewDeployment};
 pub use env_vars::{EnvVar, EnvVarRepo, NewEnvVar};
@@ -37,7 +39,7 @@ pub use projects::{Environment, Project, ProjectRepo};
 pub use scheduled_tasks::{
     NewScheduledTask, ScheduledTask, ScheduledTaskExecution, ScheduledTaskPatch, ScheduledTaskRepo,
 };
-pub use servers::{Destination, NewServer, Server, ServerRepo, ServerSettings};
+pub use servers::{Destination, NewHetznerServer, NewServer, Server, ServerRepo, ServerSettings};
 pub use services::{NewService, Service, ServiceApplication, ServiceRepo};
 pub use settings::{ApiToken, InstanceSettings, Session, SettingsRepo};
 pub use teams::{

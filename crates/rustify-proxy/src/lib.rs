@@ -5,9 +5,11 @@
 //! start/stop shell scripts. Naming follows Contract C7 (`rustify-proxy`,
 //! `/data/rustify/proxy`, network `rustify`).
 
+pub mod caddy;
 pub mod config;
 pub mod lifecycle;
 
+pub use caddy::generate_caddy_proxy_compose;
 pub use config::{
     PROXY_CONTAINER, PROXY_DIR, PROXY_NETWORK, extract_custom_commands, generate_proxy_compose,
 };

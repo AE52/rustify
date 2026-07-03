@@ -1,0 +1,26 @@
+# Cloudflare Tunnel one-service compose. Ported from Coolify ConfigureCloudflared
+# (app/Actions/Server/ConfigureCloudflared.php:17-37): image
+# cloudflare/cloudflared:latest, network_mode host, command 'tunnel run',
+# TUNNEL_TOKEN + TUNNEL_METRICS=127.0.0.1:60123 env, cloudflared tunnel ready
+# healthcheck. Rustify names the container rustify-cloudflared. Token=TESTTOKEN.
+services:
+  rustify-cloudflared:
+    container_name: rustify-cloudflared
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    network_mode: host
+    command: tunnel run
+    environment:
+    - TUNNEL_TOKEN=TESTTOKEN
+    - TUNNEL_METRICS=127.0.0.1:60123
+    healthcheck:
+      test:
+      - CMD
+      - cloudflared
+      - tunnel
+      - --metrics
+      - 127.0.0.1:60123
+      - ready
+      interval: 5s
+      timeout: 30s
+      retries: 5

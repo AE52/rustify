@@ -65,6 +65,27 @@ pub struct ValidateResponse {
     pub job_uuid: String,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CloudflaredEnable {
+    /// The Cloudflare tunnel token to run the agent with.
+    pub tunnel_token: String,
+    /// The tunnel's public SSH hostname (Coolify: `ssh_domain`). Once the tunnel
+    /// is healthy the server's `ip` is repointed at this hostname so subsequent
+    /// ssh connections dial `cloudflared access ssh --hostname <this>`.
+    pub ssh_hostname: String,
+}
+
+/// Normalise an operator-supplied tunnel SSH hostname: drop any `http(s)://`
+/// scheme and trailing slash, matching Coolify's `automatedCloudflareConfig`.
+fn normalize_ssh_hostname(raw: &str) -> String {
+    raw.trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_end_matches('/')
+        .trim()
+        .to_string()
+}
+
 /// Render a server row with its key uuid resolved.
 async fn server_dto(state: &AppState, server: Server) -> ApiResult<ServerDto> {
     let key = KeyRepo::new(state.pool.clone())
@@ -303,6 +324,68 @@ async fn proxy_lifecycle(
     Ok((StatusCode::ACCEPTED, Json(json!({ "status": "accepted" }))).into_response())
 }
 
+#[utoipa::path(post, path = "/servers/{uuid}/cloudflared", tag = "servers",
+    params(("uuid" = String, Path, description = "Server uuid")),
+    request_body = CloudflaredEnable,
+    responses((status = 202, description = "Cloudflare tunnel configuration enqueued")))]
+pub async fn cloudflared_enable(
+    State(state): State<AppState>,
+    team: CurrentTeam,
+    _guard: RequireAdmin,
+    Path(uuid): Path<String>,
+    Json(body): Json<CloudflaredEnable>,
+) -> ApiResult<Response> {
+    let server = owned(&state, &team, &uuid).await?;
+    if body.tunnel_token.trim().is_empty() {
+        return Err(ApiError::Validation(
+            "tunnel_token must not be empty".to_string(),
+        ));
+    }
+    let ssh_hostname = normalize_ssh_hostname(&body.ssh_hostname);
+    if ssh_hostname.is_empty() {
+        return Err(ApiError::Validation(
+            "ssh_hostname must not be empty".to_string(),
+        ));
+    }
+    state
+        .queue
+        .enqueue(
+            "configure_cloudflared",
+            json!({
+                "server_uuid": server.uuid,
+                "tunnel_token": body.tunnel_token,
+                "ssh_hostname": ssh_hostname,
+                "action": "configure",
+            }),
+            None,
+        )
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    Ok((StatusCode::ACCEPTED, Json(json!({ "status": "accepted" }))).into_response())
+}
+
+#[utoipa::path(delete, path = "/servers/{uuid}/cloudflared", tag = "servers",
+    params(("uuid" = String, Path, description = "Server uuid")),
+    responses((status = 202, description = "Cloudflare tunnel teardown enqueued")))]
+pub async fn cloudflared_disable(
+    State(state): State<AppState>,
+    team: CurrentTeam,
+    _guard: RequireAdmin,
+    Path(uuid): Path<String>,
+) -> ApiResult<Response> {
+    let server = owned(&state, &team, &uuid).await?;
+    state
+        .queue
+        .enqueue(
+            "configure_cloudflared",
+            json!({ "server_uuid": server.uuid, "action": "disable" }),
+            None,
+        )
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    Ok((StatusCode::ACCEPTED, Json(json!({ "status": "accepted" }))).into_response())
+}
+
 #[utoipa::path(post, path = "/servers/{uuid}/proxy/start", tag = "servers",
     params(("uuid" = String, Path, description = "Server uuid")),
     responses((status = 202, description = "Proxy start enqueued")))]
@@ -334,4 +417,27 @@ pub async fn proxy_restart(
     Path(uuid): Path<String>,
 ) -> ApiResult<Response> {
     proxy_lifecycle(&state, &team, &uuid, "restart").await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_ssh_hostname;
+
+    #[test]
+    fn strips_scheme_and_trailing_slash() {
+        assert_eq!(
+            normalize_ssh_hostname("https://ssh.example.com/"),
+            "ssh.example.com"
+        );
+        assert_eq!(
+            normalize_ssh_hostname("http://ssh.example.com"),
+            "ssh.example.com"
+        );
+        assert_eq!(
+            normalize_ssh_hostname("  ssh.example.com  "),
+            "ssh.example.com"
+        );
+        assert_eq!(normalize_ssh_hostname("ssh.example.com"), "ssh.example.com");
+        assert_eq!(normalize_ssh_hostname("  "), "");
+    }
 }

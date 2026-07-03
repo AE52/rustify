@@ -1545,6 +1545,21 @@ pub(crate) async fn build_conn(
         materialise_key(&key_dir, &key_path, &material);
     }
 
+    // Servers behind a Cloudflare tunnel are reached via a ProxyCommand that
+    // runs `cloudflared access ssh` (injected into every ssh/scp/mux command).
+    let is_tunnel: Option<bool> =
+        sqlx::query_scalar("SELECT is_cloudflare_tunnel FROM server_settings WHERE server_id = $1")
+            .bind(server.id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten();
+    let proxy_command = if is_tunnel.unwrap_or(false) {
+        Some(rustify_ssh::command::CLOUDFLARED_SSH_PROXY_COMMAND.to_string())
+    } else {
+        None
+    };
+
     ServerConn {
         uuid: server.uuid.clone(),
         host: server.ip.clone(),
@@ -1552,6 +1567,7 @@ pub(crate) async fn build_conn(
         user: server.ssh_user.clone(),
         key_path,
         connection_timeout_secs: connection_timeout,
+        proxy_command,
     }
 }
 

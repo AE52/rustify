@@ -28,6 +28,102 @@ fn service_port(app: &AppComposeInput) -> String {
         .unwrap_or_else(|| "80".to_string())
 }
 
+/// Which reverse proxy a destination server runs. Selects the container label
+/// set at compose time (`server_settings.proxy_type`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProxyKind {
+    Traefik,
+    Caddy,
+}
+
+impl ProxyKind {
+    /// Parse the stored `server_settings.proxy_type` string; anything other than
+    /// `caddy` defaults to Traefik (Rustify's default proxy).
+    pub fn from_proxy_type(proxy_type: &str) -> Self {
+        if proxy_type.eq_ignore_ascii_case("caddy") {
+            ProxyKind::Caddy
+        } else {
+            ProxyKind::Traefik
+        }
+    }
+}
+
+/// The `www`/`non-www` redirect a caddy label set applies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CaddyRedirect {
+    None,
+    Www,
+    NonWww,
+}
+
+/// Container labels for `app` under the given proxy.
+pub fn labels_for(app: &AppComposeInput, kind: ProxyKind) -> Vec<String> {
+    match kind {
+        ProxyKind::Traefik => traefik_labels(app),
+        ProxyKind::Caddy => caddy_labels(app),
+    }
+}
+
+/// The rustify bookkeeping labels every managed container carries, regardless of
+/// proxy.
+fn bookkeeping_labels(app: &AppComposeInput) -> Vec<String> {
+    vec![
+        "rustify.managed=true".to_string(),
+        format!("rustify.applicationId={}", app.application_id),
+        format!("rustify.applicationUuid={}", app.application_uuid),
+        format!("rustify.pullRequestId={}", app.pull_request_id),
+        format!("rustify.deploymentId={}", app.deployment_uuid),
+    ]
+}
+
+/// Full label set for a managed container behind caddy-docker-proxy. Port of
+/// Coolify's `fqdnLabelsForCaddy` (bootstrap/helpers/docker.php:356-412),
+/// reduced to the pinned single-FQDN set. Defaults to no www/non-www redirect
+/// (Coolify's `redirect_direction='both'`).
+pub fn caddy_labels(app: &AppComposeInput) -> Vec<String> {
+    caddy_labels_with(app, CaddyRedirect::None)
+}
+
+/// Caddy label set with an explicit redirect direction.
+pub fn caddy_labels_with(app: &AppComposeInput, redirect: CaddyRedirect) -> Vec<String> {
+    let mut labels = bookkeeping_labels(app);
+    labels.push(format!("caddy_ingress_network={}", app.network));
+
+    if let Some(fqdn) = &app.fqdn {
+        let host = parse_host(fqdn);
+        let scheme = parse_scheme(fqdn);
+        let port = service_port(app);
+        let host_without_www = host.strip_prefix("www.").unwrap_or(&host).to_string();
+        // Loop index 0 (single FQDN).
+        labels.push(format!("caddy_0={scheme}://{host}"));
+        labels.push("caddy_0.header=-Server".to_string());
+        labels.push(format!(
+            "caddy_0.handle_path.0_reverse_proxy={{{{upstreams {port}}}}}"
+        ));
+        labels.push("caddy_0.encode=zstd gzip".to_string());
+        match redirect {
+            CaddyRedirect::Www if !host.starts_with("www.") => {
+                labels.push(format!("caddy_0.redir={scheme}://www.{host}{{uri}}"));
+            }
+            CaddyRedirect::NonWww if host.starts_with("www.") => {
+                labels.push(format!(
+                    "caddy_0.redir={scheme}://{host_without_www}{{uri}}"
+                ));
+            }
+            _ => {}
+        }
+    }
+
+    labels
+}
+
+/// Extract the URL scheme (default `http`).
+fn parse_scheme(fqdn: &str) -> String {
+    fqdn.split_once("://")
+        .map(|(s, _)| s.to_string())
+        .unwrap_or_else(|| "http".to_string())
+}
+
 /// Full label set for a managed container.
 pub fn traefik_labels(app: &AppComposeInput) -> Vec<String> {
     let uuid = &app.application_uuid;
@@ -123,6 +219,60 @@ mod tests {
         let labels = traefik_labels(&app_with_fqdn(Some("https://x.example.com")));
         let golden = crate::test_support::load_golden("labels-https.txt");
         assert_eq!(labels.join("\n").trim(), golden.trim());
+    }
+
+    #[test]
+    fn caddy_bookkeeping_labels_and_ingress_network_without_fqdn() {
+        let labels = caddy_labels(&app_with_fqdn(None));
+        assert_eq!(
+            labels,
+            vec![
+                "rustify.managed=true",
+                "rustify.applicationId=42",
+                "rustify.applicationUuid=app-uuid",
+                "rustify.pullRequestId=0",
+                "rustify.deploymentId=dep-uuid",
+                "caddy_ingress_network=rustify",
+            ]
+        );
+    }
+
+    #[test]
+    fn caddy_labels_match_golden() {
+        let labels = caddy_labels(&app_with_fqdn(Some("https://x.example.com")));
+        let golden = crate::test_support::load_golden("caddy-labels.txt");
+        assert_eq!(labels.join("\n").trim(), golden.trim());
+    }
+
+    #[test]
+    fn caddy_reverse_proxy_uses_exposed_port_and_encode() {
+        let labels = caddy_labels(&app_with_fqdn(Some("https://x.example.com")));
+        assert!(labels.contains(&"caddy_0=https://x.example.com".to_string()));
+        assert!(labels.contains(&"caddy_0.header=-Server".to_string()));
+        assert!(
+            labels.contains(&"caddy_0.handle_path.0_reverse_proxy={{upstreams 3000}}".to_string())
+        );
+        assert!(labels.contains(&"caddy_0.encode=zstd gzip".to_string()));
+    }
+
+    #[test]
+    fn caddy_www_redirect_only_when_requested() {
+        let both = caddy_labels(&app_with_fqdn(Some("https://x.example.com")));
+        assert!(!both.iter().any(|l| l.starts_with("caddy_0.redir=")));
+        let www = caddy_labels_with(
+            &app_with_fqdn(Some("https://x.example.com")),
+            CaddyRedirect::Www,
+        );
+        assert!(www.contains(&"caddy_0.redir=https://www.x.example.com{uri}".to_string()));
+    }
+
+    #[test]
+    fn labels_for_selects_proxy_set() {
+        let app = app_with_fqdn(Some("https://x.example.com"));
+        assert_eq!(labels_for(&app, ProxyKind::Traefik), traefik_labels(&app));
+        assert_eq!(labels_for(&app, ProxyKind::Caddy), caddy_labels(&app));
+        assert_eq!(ProxyKind::from_proxy_type("caddy"), ProxyKind::Caddy);
+        assert_eq!(ProxyKind::from_proxy_type("traefik"), ProxyKind::Traefik);
     }
 
     #[test]

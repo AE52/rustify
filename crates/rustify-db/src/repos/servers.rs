@@ -21,6 +21,10 @@ pub struct Server {
     pub reachable: bool,
     pub usable: bool,
     pub validation_logs: Option<String>,
+    pub hetzner_server_id: Option<i64>,
+    pub hetzner_server_status: Option<String>,
+    pub ip_previous: Option<String>,
+    pub cloud_provider_token_id: Option<i64>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -46,6 +50,7 @@ pub struct ServerSettings {
     pub metrics_refresh_rate_seconds: i32,
     /// How many days of samples the retention prune keeps (migration 0011).
     pub metrics_history_days: i32,
+    pub is_cloudflare_tunnel: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -60,7 +65,8 @@ pub struct Destination {
 }
 
 const SERVER_COLS: &str = "id, uuid, team_id, name, ip, port, ssh_user, private_key_id, \
-     reachable, usable, validation_logs, created_at, updated_at";
+     reachable, usable, validation_logs, hetzner_server_id, hetzner_server_status, ip_previous, \
+     cloud_provider_token_id, created_at, updated_at";
 
 /// Fields required to register a server.
 #[derive(Debug, Clone)]
@@ -71,6 +77,19 @@ pub struct NewServer {
     pub port: i32,
     pub ssh_user: String,
     pub private_key_id: i64,
+}
+
+/// Fields required to register a Hetzner-provisioned server.
+#[derive(Debug, Clone)]
+pub struct NewHetznerServer {
+    pub team_id: i64,
+    pub name: String,
+    pub ip: String,
+    pub port: i32,
+    pub ssh_user: String,
+    pub private_key_id: i64,
+    pub hetzner_server_id: i64,
+    pub cloud_provider_token_id: i64,
 }
 
 #[derive(Clone)]
@@ -118,6 +137,149 @@ impl ServerRepo {
 
         tx.commit().await?;
         Ok(server)
+    }
+
+    /// Register a Hetzner-provisioned server (user `root`, port 22, proxy
+    /// traefik/exited) with its `hetzner_server_id` and cloud token, together
+    /// with its default settings + destination row. Parity with Coolify's
+    /// `ByHetzner::submit` (app/Livewire/Server/New/ByHetzner.php:508-521).
+    pub async fn create_hetzner(&self, new: NewHetznerServer) -> DbResult<Server> {
+        let mut tx = self.pool.begin().await?;
+        let uuid = ids::new_uuid();
+        let server = sqlx::query_as::<_, Server>(&format!(
+            "INSERT INTO servers
+               (uuid, team_id, name, ip, port, ssh_user, private_key_id,
+                hetzner_server_id, hetzner_server_status, cloud_provider_token_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'initializing', $9)
+             RETURNING {SERVER_COLS}"
+        ))
+        .bind(&uuid)
+        .bind(new.team_id)
+        .bind(&new.name)
+        .bind(&new.ip)
+        .bind(new.port)
+        .bind(&new.ssh_user)
+        .bind(new.private_key_id)
+        .bind(new.hetzner_server_id)
+        .bind(new.cloud_provider_token_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        sqlx::query("INSERT INTO server_settings (server_id) VALUES ($1)")
+            .bind(server.id)
+            .execute(&mut *tx)
+            .await?;
+
+        sqlx::query(
+            "INSERT INTO destinations (uuid, server_id, network) VALUES ($1, $2, 'rustify')",
+        )
+        .bind(ids::new_uuid())
+        .bind(server.id)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(server)
+    }
+
+    /// Update the cached Hetzner power state (`running`/`off`/…) for a server.
+    pub async fn set_hetzner_status(&self, id: i64, status: &str) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE servers SET hetzner_server_status = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(status)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Every server in a team that Hetzner tracks (`hetzner_server_id IS NOT
+    /// NULL`), used by the periodic power-state sync.
+    pub async fn hetzner_servers(&self) -> DbResult<Vec<Server>> {
+        let rows = sqlx::query_as::<_, Server>(&format!(
+            "SELECT {SERVER_COLS} FROM servers WHERE hetzner_server_id IS NOT NULL ORDER BY id"
+        ))
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    /// Toggle a server's Cloudflare-tunnel flag. When enabling, the direct IP is
+    /// stashed in `ip_previous` and `ip` is replaced with the SSH hostname; when
+    /// disabling, `ip_previous` is restored. Parity with Coolify's
+    /// `CloudflareTunnelChanged` handling.
+    pub async fn set_cloudflare_tunnel(
+        &self,
+        id: i64,
+        enabled: bool,
+        ssh_hostname: Option<&str>,
+    ) -> DbResult<()> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query(
+            "UPDATE server_settings SET is_cloudflare_tunnel = $2, updated_at = now()
+             WHERE server_id = $1",
+        )
+        .bind(id)
+        .bind(enabled)
+        .execute(&mut *tx)
+        .await?;
+        if enabled {
+            if let Some(host) = ssh_hostname {
+                sqlx::query(
+                    "UPDATE servers SET ip_previous = ip, ip = $2, updated_at = now()
+                     WHERE id = $1",
+                )
+                .bind(id)
+                .bind(host)
+                .execute(&mut *tx)
+                .await?;
+            }
+        } else {
+            sqlx::query(
+                "UPDATE servers
+                    SET ip = COALESCE(ip_previous, ip), ip_previous = NULL, updated_at = now()
+                  WHERE id = $1",
+            )
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        }
+        tx.commit().await?;
+        Ok(())
+    }
+
+    /// Usable build servers in a team (`is_build_server = true`). Parity with
+    /// Coolify's `Server::buildServers` scope used by `ApplicationDeploymentJob`.
+    pub async fn build_servers(&self, team_id: i64) -> DbResult<Vec<Server>> {
+        let rows = sqlx::query_as::<_, Server>(&format!(
+            "SELECT s.{cols} FROM servers s
+               JOIN server_settings ss ON ss.server_id = s.id
+              WHERE s.team_id = $1 AND s.usable = true AND ss.is_build_server = true
+              ORDER BY s.id",
+            cols = SERVER_COLS.replace(", ", ", s.")
+        ))
+        .bind(team_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    /// Deploy/destination-eligible servers in a team: usable and NOT build
+    /// servers. Build servers only build+push images and are excluded from
+    /// proxy/destination/deploy-target lists.
+    pub async fn deploy_targets(&self, team_id: i64) -> DbResult<Vec<Server>> {
+        let rows = sqlx::query_as::<_, Server>(&format!(
+            "SELECT s.{cols} FROM servers s
+               JOIN server_settings ss ON ss.server_id = s.id
+              WHERE s.team_id = $1 AND s.usable = true AND ss.is_build_server = false
+              ORDER BY s.id",
+            cols = SERVER_COLS.replace(", ", ", s.")
+        ))
+        .bind(team_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
     }
 
     pub async fn get_by_uuid(&self, uuid: &str) -> DbResult<Option<Server>> {
@@ -244,7 +406,7 @@ impl ServerRepo {
                     connection_timeout, proxy_type, proxy_status, proxy_custom_config,
                     is_build_server, is_terminal_enabled, metrics_enabled,
                     metrics_refresh_rate_seconds, metrics_history_days,
-                    created_at, updated_at
+                    is_cloudflare_tunnel, created_at, updated_at
              FROM server_settings WHERE server_id = $1",
         )
         .bind(server_id)

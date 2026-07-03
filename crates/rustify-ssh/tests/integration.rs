@@ -29,6 +29,7 @@ fn conn() -> ServerConn {
             std::env::var("RUSTIFY_SSH_TEST_KEY").expect("RUSTIFY_SSH_TEST_KEY must be set"),
         ),
         connection_timeout_secs: 10,
+        proxy_command: None,
     }
 }
 

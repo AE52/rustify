@@ -14,13 +14,15 @@ pub mod service_compose;
 pub mod service_manifest;
 
 pub use build_command::BuildCommand;
-pub use compose::{AppComposeInput, HealthCheck, generate_compose};
+pub use compose::{AppComposeInput, HealthCheck, generate_compose, generate_compose_for_proxy};
 pub use db_compose::{
     DatabaseComposeInput, generate_database_compose, generate_db_proxy_compose,
     generate_db_proxy_nginx_conf,
 };
 pub use inspect::{ContainerHealth, ManagedContainer, parse_containers, parse_health};
-pub use labels::traefik_labels;
+pub use labels::{
+    CaddyRedirect, ProxyKind, caddy_labels, caddy_labels_with, labels_for, traefik_labels,
+};
 pub use railpack::RailpackBuildCommand;
 pub use service_compose::{MutatedService, ServiceComposeError, parse_and_mutate_service};
 pub use service_manifest::{ServiceTemplate, build_manifest, load_manifest, parse_template};

@@ -336,7 +336,7 @@ async fn openapi_contains_all_c5_paths(pool: PgPool) {
     assert_eq!(status, StatusCode::OK);
 
     let paths = doc["paths"].as_object().expect("openapi has paths");
-    assert_eq!(paths.len(), 76, "expected 76 documented C5 paths");
+    assert_eq!(paths.len(), 83, "expected 83 documented C5 paths");
 
     for expected in [
         "/auth/login",
@@ -355,6 +355,13 @@ async fn openapi_contains_all_c5_paths(pool: PgPool) {
         "/servers/{uuid}/proxy/restart",
         "/servers/{uuid}/metrics/{metric}",
         "/containers/{uuid}/metrics/{metric}",
+        "/servers/{uuid}/cloudflared",
+        "/servers/provision/hetzner",
+        "/cloud-tokens",
+        "/cloud-tokens/{uuid}",
+        "/hetzner/locations",
+        "/hetzner/server-types",
+        "/hetzner/images",
         "/projects",
         "/projects/{uuid}",
         "/projects/{uuid}/environments",

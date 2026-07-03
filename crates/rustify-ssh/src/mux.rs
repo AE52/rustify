@@ -176,9 +176,10 @@ fn common_establish_options(conn: &ServerConn) -> String {
     format!(
         "-i {key} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
 -o PasswordAuthentication=no -o ConnectTimeout={timeout} -o ServerAliveInterval=20 \
--o RequestTTY=no -o LogLevel=ERROR -p {port}",
+-o RequestTTY=no -o LogLevel=ERROR{proxy} -p {port}",
         key = conn.key_path.display(),
         timeout = conn.connection_timeout_secs,
+        proxy = command::proxy_command_opt(conn),
         port = conn.port,
     )
 }
@@ -234,12 +235,32 @@ mod tests {
             user: "deploy".into(),
             key_path: PathBuf::from("/k"),
             connection_timeout_secs: 15,
+            proxy_command: None,
         };
         assert_eq!(
             common_establish_options(&conn),
             "-i /k -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
 -o PasswordAuthentication=no -o ConnectTimeout=15 -o ServerAliveInterval=20 \
 -o RequestTTY=no -o LogLevel=ERROR -p 2222"
+        );
+    }
+
+    #[test]
+    fn establish_options_inject_proxy_command_for_tunnel() {
+        let conn = ServerConn {
+            uuid: "u".into(),
+            host: "h".into(),
+            port: 2222,
+            user: "deploy".into(),
+            key_path: PathBuf::from("/k"),
+            connection_timeout_secs: 15,
+            proxy_command: Some(command::CLOUDFLARED_SSH_PROXY_COMMAND.to_string()),
+        };
+        assert_eq!(
+            common_establish_options(&conn),
+            "-i /k -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+-o PasswordAuthentication=no -o ConnectTimeout=15 -o ServerAliveInterval=20 \
+-o RequestTTY=no -o LogLevel=ERROR -o ProxyCommand='cloudflared access ssh --hostname %h' -p 2222"
         );
     }
 }
