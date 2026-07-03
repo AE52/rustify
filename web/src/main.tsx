@@ -17,6 +17,7 @@ import ApplicationDomains from './routes/applications/[uuid]/domains'
 import ApplicationDeployments from './routes/applications/[uuid]/deployments'
 import ApplicationPreviews from './routes/applications/[uuid]/previews'
 import ApplicationTasks from './routes/applications/[uuid]/tasks'
+import ApplicationTerminal from './routes/applications/[uuid]/terminal'
 import DeploymentPage from './routes/deployments/[uuid]'
 import DatabasesList from './routes/databases/index'
 import NewDatabase from './routes/databases/new'
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
           { path: 'deployments', element: <ApplicationDeployments /> },
           { path: 'previews', element: <ApplicationPreviews /> },
           { path: 'tasks', element: <ApplicationTasks /> },
+          { path: 'terminal', element: <ApplicationTerminal /> },
         ],
       },
       { path: '/deployments/:uuid', element: <DeploymentPage /> },
