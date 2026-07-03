@@ -34,9 +34,11 @@ pub mod engine;
 pub mod envfile;
 pub mod git;
 pub mod rolling;
+pub mod scheduled_task;
 pub mod server_setup;
 pub mod service;
 pub mod status_sync;
+pub mod system_cron;
 
 pub use backup::{
     DATABASE_BACKUP_KIND, DatabaseBackupHandler, backup_dispatcher_task, cron_is_due,
@@ -44,12 +46,20 @@ pub use backup::{
 };
 pub use database::{StartDatabaseHandler, StopDatabaseHandler, start_database, stop_database};
 pub use engine::{DeployJobHandler, run_deployment};
+pub use scheduled_task::{
+    SCHEDULED_TASK_KIND, ScheduledTaskHandler, dispatch_due_tasks, run_scheduled_task,
+    task_dispatcher_task,
+};
 pub use server_setup::ServerSetupHandler;
 pub use service::{
     SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND, ServiceDeployHandler, ServiceStopHandler,
     deploy_service, stop_service,
 };
 pub use status_sync::status_sync_task;
+pub use system_cron::{
+    cleanup_docker_all, cleanup_old_records, daily_cleanup_task, docker_cleanup_task,
+    remove_stale_mux_sockets, ssh_mux_cleanup_task,
+};
 
 /// Broadcast channel of realtime events (Contract C4).
 pub type EventBus = broadcast::Sender<WsEvent>;

@@ -8,6 +8,7 @@ pub mod deployments;
 pub mod env_vars;
 pub mod keys;
 pub mod projects;
+pub mod scheduled_tasks;
 pub mod servers;
 pub mod services;
 pub mod settings;
@@ -25,6 +26,9 @@ pub use deployments::{Deployment, DeploymentRepo, NewDeployment};
 pub use env_vars::{EnvVar, EnvVarRepo, NewEnvVar};
 pub use keys::{KeyRepo, PrivateKey};
 pub use projects::{Environment, Project, ProjectRepo};
+pub use scheduled_tasks::{
+    NewScheduledTask, ScheduledTask, ScheduledTaskExecution, ScheduledTaskPatch, ScheduledTaskRepo,
+};
 pub use servers::{Destination, NewServer, Server, ServerRepo, ServerSettings};
 pub use services::{NewService, Service, ServiceApplication, ServiceRepo};
 pub use settings::{ApiToken, InstanceSettings, Session, SettingsRepo};

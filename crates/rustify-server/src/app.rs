@@ -14,7 +14,7 @@ use rustify_jobs::JobQueue;
 
 use crate::routes::{
     applications, auth, backups, databases, deployments, health, keys, projects, s3_storages,
-    servers, service_templates, services, settings, tokens,
+    scheduled_tasks, servers, service_templates, services, settings, tokens,
 };
 use crate::{embed, ws};
 
@@ -156,6 +156,15 @@ pub struct AppState {
         services::deploy,
         services::stop,
         services::restart,
+        scheduled_tasks::list_for_application,
+        scheduled_tasks::create_for_application,
+        scheduled_tasks::list_for_service,
+        scheduled_tasks::create_for_service,
+        scheduled_tasks::get,
+        scheduled_tasks::update,
+        scheduled_tasks::delete,
+        scheduled_tasks::trigger,
+        scheduled_tasks::executions,
         settings::get,
         settings::update,
         tokens::list,
@@ -212,6 +221,10 @@ pub struct AppState {
         services::ServiceApplicationDto,
         services::ServiceCreate,
         services::ServiceUpdate,
+        scheduled_tasks::ScheduledTaskDto,
+        scheduled_tasks::ScheduledTaskExecutionDto,
+        scheduled_tasks::ScheduledTaskCreate,
+        scheduled_tasks::ScheduledTaskUpdate,
         settings::InstanceSettingsDto,
         settings::InstanceSettingsUpdate,
         tokens::ApiTokenDto,
@@ -231,6 +244,7 @@ pub struct AppState {
         (name = "s3-storages", description = "S3-compatible backup storage"),
         (name = "service-templates", description = "One-click service catalog"),
         (name = "services", description = "One-click services"),
+        (name = "scheduled-tasks", description = "User scheduled tasks and executions"),
         (name = "settings", description = "Instance settings"),
         (name = "api-tokens", description = "API tokens"),
     )
@@ -391,6 +405,30 @@ fn api_router() -> Router<AppState> {
         .route("/api/v1/services/{uuid}/deploy", post(services::deploy))
         .route("/api/v1/services/{uuid}/stop", post(services::stop))
         .route("/api/v1/services/{uuid}/restart", post(services::restart))
+        // scheduled tasks
+        .route(
+            "/api/v1/applications/{uuid}/scheduled-tasks",
+            get(scheduled_tasks::list_for_application)
+                .post(scheduled_tasks::create_for_application),
+        )
+        .route(
+            "/api/v1/services/{uuid}/scheduled-tasks",
+            get(scheduled_tasks::list_for_service).post(scheduled_tasks::create_for_service),
+        )
+        .route(
+            "/api/v1/scheduled-tasks/{uuid}",
+            get(scheduled_tasks::get)
+                .patch(scheduled_tasks::update)
+                .delete(scheduled_tasks::delete),
+        )
+        .route(
+            "/api/v1/scheduled-tasks/{uuid}/trigger",
+            post(scheduled_tasks::trigger),
+        )
+        .route(
+            "/api/v1/scheduled-tasks/{uuid}/executions",
+            get(scheduled_tasks::executions),
+        )
         // settings
         .route(
             "/api/v1/settings",

@@ -7,6 +7,7 @@
 //! redaction helpers.
 
 pub mod backup_cmd;
+pub mod cron;
 pub mod crypto;
 pub mod db_engine;
 pub mod deployment;
