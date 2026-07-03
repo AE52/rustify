@@ -333,7 +333,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["restart"];
+        post: operations["restart_database"];
         delete?: never;
         options?: never;
         head?: never;
@@ -349,7 +349,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["start"];
+        post: operations["start_database"];
         delete?: never;
         options?: never;
         head?: never;
@@ -365,7 +365,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["stop"];
+        post: operations["stop_database"];
         delete?: never;
         options?: never;
         head?: never;
@@ -813,7 +813,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["deploy"];
+        post: operations["deploy_service"];
         delete?: never;
         options?: never;
         head?: never;
@@ -829,7 +829,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["restart"];
+        post: operations["restart_service"];
         delete?: never;
         options?: never;
         head?: never;
@@ -861,7 +861,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["stop"];
+        post: operations["stop_service"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2409,7 +2409,7 @@ export interface operations {
             };
         };
     };
-    restart: {
+    restart_database: {
         parameters: {
             query?: never;
             header?: never;
@@ -2430,7 +2430,7 @@ export interface operations {
             };
         };
     };
-    start: {
+    start_database: {
         parameters: {
             query?: never;
             header?: never;
@@ -2451,7 +2451,7 @@ export interface operations {
             };
         };
     };
-    stop: {
+    stop_database: {
         parameters: {
             query?: never;
             header?: never;
@@ -3759,7 +3759,7 @@ export interface operations {
             };
         };
     };
-    deploy: {
+    deploy_service: {
         parameters: {
             query?: never;
             header?: never;
@@ -3780,7 +3780,7 @@ export interface operations {
             };
         };
     };
-    restart: {
+    restart_service: {
         parameters: {
             query?: never;
             header?: never;
@@ -3851,7 +3851,7 @@ export interface operations {
             };
         };
     };
-    stop: {
+    stop_service: {
         parameters: {
             query?: never;
             header?: never;
