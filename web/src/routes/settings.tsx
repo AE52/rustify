@@ -29,6 +29,7 @@ function InstanceSection() {
   const [fqdn, setFqdn] = useState<string | null>(null)
   const [wildcard, setWildcard] = useState<string | null>(null)
   const [registration, setRegistration] = useState<boolean | null>(null)
+  const [prPublic, setPrPublic] = useState<boolean | null>(null)
 
   const save = useMutation({
     mutationFn: () =>
@@ -36,6 +37,8 @@ function InstanceSection() {
         fqdn: (fqdn ?? settings.data?.fqdn ?? '') || null,
         wildcard_domain: (wildcard ?? settings.data?.wildcard_domain ?? '') || null,
         registration_enabled: registration ?? settings.data?.registration_enabled ?? false,
+        is_pr_deployments_public_enabled:
+          prPublic ?? settings.data?.is_pr_deployments_public_enabled ?? false,
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings'] }),
   })
@@ -78,6 +81,16 @@ function InstanceSection() {
           className="accent-zinc-400"
         />
         Allow new user registration
+      </label>
+      <label className="flex items-center gap-2 text-sm text-zinc-300">
+        <input
+          type="checkbox"
+          checked={prPublic ?? s.is_pr_deployments_public_enabled}
+          onChange={(e) => setPrPublic(e.target.checked)}
+          className="accent-zinc-400"
+          aria-label="Public PR deployments enabled"
+        />
+        Allow preview deployments from forks / public pull requests
       </label>
       <ErrorNote error={save.error} />
       <button type="submit" className={`${btnPrimary} w-fit`} disabled={save.isPending}>

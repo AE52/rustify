@@ -15,6 +15,7 @@ import ApplicationStorage from './routes/applications/[uuid]/storage'
 import ApplicationSource from './routes/applications/[uuid]/source'
 import ApplicationDomains from './routes/applications/[uuid]/domains'
 import ApplicationDeployments from './routes/applications/[uuid]/deployments'
+import ApplicationPreviews from './routes/applications/[uuid]/previews'
 import ApplicationTasks from './routes/applications/[uuid]/tasks'
 import DeploymentPage from './routes/deployments/[uuid]'
 import DatabasesList from './routes/databases/index'
@@ -23,6 +24,9 @@ import DatabasePage from './routes/databases/[uuid]'
 import ServicesCatalog from './routes/services/index'
 import ServicePage from './routes/services/[uuid]'
 import Settings from './routes/settings'
+import SourcesPage from './routes/sources/index'
+import SourceDetailPage from './routes/sources/[uuid]'
+import NotificationsPage from './routes/notifications'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +56,7 @@ const router = createBrowserRouter([
           { path: 'source', element: <ApplicationSource /> },
           { path: 'domains', element: <ApplicationDomains /> },
           { path: 'deployments', element: <ApplicationDeployments /> },
+          { path: 'previews', element: <ApplicationPreviews /> },
           { path: 'tasks', element: <ApplicationTasks /> },
         ],
       },
@@ -61,6 +66,9 @@ const router = createBrowserRouter([
       { path: '/databases/:uuid', element: <DatabasePage /> },
       { path: '/services', element: <ServicesCatalog /> },
       { path: '/services/:uuid', element: <ServicePage /> },
+      { path: '/sources', element: <SourcesPage /> },
+      { path: '/sources/github/:uuid', element: <SourceDetailPage /> },
+      { path: '/notifications', element: <NotificationsPage /> },
       { path: '/settings', element: <Settings /> },
     ],
   },
