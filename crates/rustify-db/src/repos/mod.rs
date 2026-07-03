@@ -2,6 +2,7 @@
 //! shared [`sqlx::PgPool`]; construct them from a single pool at startup.
 
 pub mod applications;
+pub mod databases;
 pub mod deployments;
 pub mod env_vars;
 pub mod keys;
@@ -12,6 +13,7 @@ pub mod teams;
 pub mod users;
 
 pub use applications::{Application, ApplicationPatch, ApplicationRepo, NewApplication};
+pub use databases::{DatabasePatch, DatabaseRepo, NewDatabase, StandaloneDatabase};
 pub use deployments::{Deployment, DeploymentRepo, NewDeployment};
 pub use env_vars::{EnvVar, EnvVarRepo, NewEnvVar};
 pub use keys::{KeyRepo, PrivateKey};

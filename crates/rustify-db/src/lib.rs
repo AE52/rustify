@@ -25,6 +25,8 @@ pub enum DbError {
     PasswordHash,
     #[error("stored value is not valid utf-8")]
     Utf8,
+    #[error("stored value is not valid json: {0}")]
+    Json(#[from] serde_json::Error),
     #[error("configuration: {0}")]
     Config(String),
     #[error("not found")]
