@@ -16,6 +16,7 @@ pub mod ids;
 pub mod logline;
 pub mod passwords;
 pub mod redact;
+pub mod service_vars;
 
 pub use db_engine::{DatabaseCredentials, DatabaseEngine, EngineDescriptor};
 pub use deployment::{BuildPack, DeploymentStatus};

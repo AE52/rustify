@@ -85,6 +85,24 @@ impl WsEvent {
             json!({ "uuid": server_uuid, "kind": kind, "content": content }),
         )
     }
+
+    /// A one-click service's container status changed (`service:<uuid>`).
+    pub fn service_status_changed(service_uuid: &str, status: &str) -> Self {
+        Self::new(
+            format!("service:{service_uuid}"),
+            "service_status_changed",
+            json!({ "uuid": service_uuid, "status": status }),
+        )
+    }
+
+    /// A line of output from a service deploy/stop task (`service:<uuid>`).
+    pub fn service_log(service_uuid: &str, kind: &str, content: &str) -> Self {
+        Self::new(
+            format!("service:{service_uuid}"),
+            "service_log",
+            json!({ "uuid": service_uuid, "kind": kind, "content": content }),
+        )
+    }
 }
 
 #[cfg(test)]

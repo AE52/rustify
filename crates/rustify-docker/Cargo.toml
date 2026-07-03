@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 rustify-core = { path = "../rustify-core" }
+base64 = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
