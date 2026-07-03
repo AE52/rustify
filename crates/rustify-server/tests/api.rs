@@ -336,7 +336,7 @@ async fn openapi_contains_all_c5_paths(pool: PgPool) {
     assert_eq!(status, StatusCode::OK);
 
     let paths = doc["paths"].as_object().expect("openapi has paths");
-    assert_eq!(paths.len(), 59, "expected 59 documented C5 paths");
+    assert_eq!(paths.len(), 61, "expected 61 documented C5 paths");
 
     for expected in [
         "/auth/login",
@@ -396,6 +396,8 @@ async fn openapi_contains_all_c5_paths(pool: PgPool) {
         "/scheduled-tasks/{uuid}/trigger",
         "/scheduled-tasks/{uuid}/executions",
         "/settings",
+        "/notifications/settings",
+        "/notifications/test",
         "/api-tokens",
         "/api-tokens/{uuid}",
     ] {

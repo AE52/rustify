@@ -13,8 +13,8 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, backups, databases, deployments, github_apps, health, keys, projects,
-    s3_storages, scheduled_tasks, servers, service_templates, services, settings, tokens,
+    applications, auth, backups, databases, deployments, github_apps, health, keys, notifications,
+    projects, s3_storages, scheduled_tasks, servers, service_templates, services, settings, tokens,
 };
 use crate::{embed, ws};
 
@@ -174,6 +174,9 @@ pub struct AppState {
         scheduled_tasks::executions,
         settings::get,
         settings::update,
+        notifications::get,
+        notifications::update,
+        notifications::test,
         tokens::list,
         tokens::create,
         tokens::delete,
@@ -239,6 +242,10 @@ pub struct AppState {
         scheduled_tasks::ScheduledTaskUpdate,
         settings::InstanceSettingsDto,
         settings::InstanceSettingsUpdate,
+        notifications::NotificationSettingsDto,
+        notifications::NotificationSettingsUpdate,
+        notifications::TestRequest,
+        notifications::TestResponse,
         tokens::ApiTokenDto,
         tokens::ApiTokenCreate,
         tokens::ApiTokenCreated,
@@ -259,6 +266,7 @@ pub struct AppState {
         (name = "services", description = "One-click services"),
         (name = "scheduled-tasks", description = "User scheduled tasks and executions"),
         (name = "settings", description = "Instance settings"),
+        (name = "notifications", description = "Notification channels and settings"),
         (name = "api-tokens", description = "API tokens"),
     )
 )]
@@ -472,6 +480,12 @@ fn api_router() -> Router<AppState> {
             "/api/v1/settings",
             get(settings::get).patch(settings::update),
         )
+        // notifications
+        .route(
+            "/api/v1/notifications/settings",
+            get(notifications::get).patch(notifications::update),
+        )
+        .route("/api/v1/notifications/test", post(notifications::test))
         // api tokens
         .route("/api/v1/api-tokens", get(tokens::list).post(tokens::create))
         .route(
