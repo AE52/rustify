@@ -1,0 +1,42 @@
+# generated_by rustify_docker::db_compose::generate_database_compose
+# coolify_ref app/Actions/Database/StartMongodb.php:100-131 (services), :312-319 (env), :112 (healthcheck)
+# do not edit by hand
+
+services:
+  db-uuid:
+    image: mongo:7
+    container_name: db-uuid
+    restart: unless-stopped
+    networks:
+    - rustify
+    environment:
+    - MONGO_INITDB_ROOT_USERNAME=postgres
+    - MONGO_INITDB_ROOT_PASSWORD=SECRETPW
+    - MONGO_INITDB_DATABASE=postgres
+    labels:
+    - rustify.managed=true
+    - rustify.type=database
+    - rustify.databaseUuid=db-uuid
+    - rustify.database.subType=standalone-mongodb
+    healthcheck:
+      test:
+      - CMD
+      - echo
+      - ok
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    volumes:
+    - mongodb-configdb:/data/configdb
+    - mongodb-db:/data/db
+networks:
+  rustify:
+    external: true
+    attachable: true
+    name: rustify
+volumes:
+  mongodb-configdb:
+    external: false
+  mongodb-db:
+    external: false
