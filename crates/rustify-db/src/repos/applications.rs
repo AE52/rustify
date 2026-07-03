@@ -50,6 +50,15 @@ pub struct Application {
     pub status: String,
     pub restart_count: i32,
     pub max_restart_count: i32,
+    /// Source discriminator: `github_app` when deployed via a GitHub App source,
+    /// otherwise `NULL` (public/`git@`/`file://` clone). Added in migration 0006.
+    pub source_type: Option<String>,
+    /// FK into `github_apps` when `source_type = 'github_app'`.
+    pub source_id: Option<i64>,
+    /// FK into `private_keys` for a raw deploy-key (SSH) clone.
+    pub private_key_id: Option<i64>,
+    /// Provider-side repository id (used by webhook matching).
+    pub repository_project_id: Option<i64>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -106,6 +115,7 @@ const COLS: &str = "id, uuid, environment_id, destination_id, name, fqdn, git_re
      health_check_host, health_check_method, health_check_return_code, health_check_interval, \
      health_check_timeout, health_check_retries, health_check_start_period, limits_memory, \
      limits_cpus, custom_docker_run_options, status, restart_count, max_restart_count, \
+     source_type, source_id, private_key_id, repository_project_id, \
      created_at, updated_at";
 
 #[derive(Clone)]
@@ -242,6 +252,30 @@ impl ApplicationRepo {
             .bind(status)
             .execute(&self.pool)
             .await?;
+        Ok(())
+    }
+
+    /// Wire an application to its git source (migration 0006). A `github_app`
+    /// source sets `source_type='github_app'` + `source_id`; a raw deploy key
+    /// sets `private_key_id`. Passing `None` for both leaves a public clone.
+    pub async fn set_source(
+        &self,
+        id: i64,
+        source_type: Option<&str>,
+        source_id: Option<i64>,
+        private_key_id: Option<i64>,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE applications
+                SET source_type = $2, source_id = $3, private_key_id = $4, updated_at = now()
+              WHERE id = $1",
+        )
+        .bind(id)
+        .bind(source_type)
+        .bind(source_id)
+        .bind(private_key_id)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 

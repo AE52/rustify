@@ -6,6 +6,7 @@ pub mod backups;
 pub mod databases;
 pub mod deployments;
 pub mod env_vars;
+pub mod github_apps;
 pub mod keys;
 pub mod projects;
 pub mod scheduled_tasks;
@@ -24,6 +25,7 @@ pub use backups::{
 pub use databases::{DatabasePatch, DatabaseRepo, NewDatabase, StandaloneDatabase};
 pub use deployments::{Deployment, DeploymentRepo, NewDeployment};
 pub use env_vars::{EnvVar, EnvVarRepo, NewEnvVar};
+pub use github_apps::{GithubApp, GithubAppPatch, GithubAppRepo, NewGithubApp};
 pub use keys::{KeyRepo, PrivateKey};
 pub use projects::{Environment, Project, ProjectRepo};
 pub use scheduled_tasks::{
