@@ -34,6 +34,7 @@ const TABS = [
   { to: 'deployments', label: 'Deployments' },
   { to: 'previews', label: 'Previews' },
   { to: 'tasks', label: 'Tasks' },
+  { to: 'terminal', label: 'Terminal' },
 ] as const
 
 export function ApplicationLayout() {

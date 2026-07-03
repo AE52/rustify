@@ -17,7 +17,7 @@ use crate::routes::{
     previews, projects, s3_storages, scheduled_tasks, servers, service_templates, services,
     settings, teams, tokens, webhooks,
 };
-use crate::{embed, ws};
+use crate::{embed, terminal, ws};
 
 /// Runtime configuration derived from the environment.
 #[derive(Clone, Debug)]
@@ -587,6 +587,8 @@ pub fn build_router(state: AppState) -> Router {
     Router::new()
         .merge(api_router())
         .route("/ws", get(ws::ws_handler))
+        // Interactive web terminal (in-process PTY over SSH).
+        .route("/terminal/ws", get(terminal::terminal_ws_handler))
         .merge(SwaggerUi::new("/docs").url("/api/v1/openapi.json", ApiDoc::openapi()))
         .fallback(embed::static_handler)
         .with_state(state)

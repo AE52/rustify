@@ -46,6 +46,11 @@ futures-util = "0.3"
 # Telegram, Slack, Pushover, generic webhook, Resend) and SMTP email.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls-tls"] }
+# In-process PTY for the interactive web terminal (replaces Coolify's separate
+# Node `coolify-realtime` bridge). `nix` supplies a safe `killpg` wrapper so the
+# ssh child's whole process group can be signalled without any unsafe code.
+portable-pty = "0.9"
+nix = { version = "0.29", features = ["signal"] }
 
 [features]
 # End-to-end harness in tests/e2e.rs. Off by default so the normal workspace

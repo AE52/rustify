@@ -5,6 +5,8 @@ import { api, type PrivateKey, type ProxyConfig, type Server } from '../../api/c
 import { ws } from '../../api/ws'
 import { ConfirmDanger } from '../../components/ConfirmDanger'
 import { StatusBadge } from '../../components/StatusBadge'
+import { Terminal } from '../../components/Terminal'
+import { hostTarget } from '../../lib/terminal'
 import {
   btnGhost,
   btnPrimary,
@@ -17,7 +19,7 @@ import {
   selectCls,
 } from '../../components/ui'
 
-type Tab = 'general' | 'proxy'
+type Tab = 'general' | 'proxy' | 'terminal'
 
 function GeneralTab({ server }: { server: Server }) {
   const [name, setName] = useState(server.name)
@@ -275,7 +277,7 @@ export default function ServerPage() {
       </div>
 
       <div className="flex gap-1 border-b border-zinc-800 text-sm">
-        {(['general', 'proxy'] as const).map((t) => (
+        {(['general', 'proxy', 'terminal'] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -291,7 +293,20 @@ export default function ServerPage() {
         ))}
       </div>
 
-      {tab === 'general' ? <GeneralTab server={s} /> : <ProxyTab serverUuid={uuid} />}
+      {tab === 'general' ? (
+        <GeneralTab server={s} />
+      ) : tab === 'proxy' ? (
+        <ProxyTab serverUuid={uuid} />
+      ) : (
+        <section className="flex flex-col gap-3">
+          <SectionTitle>Terminal</SectionTitle>
+          <p className="text-xs text-zinc-500">
+            An SSH shell on <span className="font-mono text-zinc-400">{s.user}@{s.ip}</span>. Admins
+            and owners only; sessions expire after 8 hours.
+          </p>
+          <Terminal target={hostTarget(uuid)} />
+        </section>
+      )}
     </div>
   )
 }
