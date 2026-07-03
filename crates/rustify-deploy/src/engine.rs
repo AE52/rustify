@@ -29,7 +29,9 @@ use rustify_jobs::JobHandler;
 use crate::buildpacks::{self, BuildCtx, Pack};
 use crate::github::{self, GithubAppRow};
 use crate::pr_comment::{self, PrCommentState};
-use crate::{DeployEngineDeps, DeployError, admission, envfile, git, preview, rolling};
+use crate::{
+    DeployEngineDeps, DeployError, admission, build_server, envfile, git, preview, rolling,
+};
 
 /// Coolify build-helper image (Contract C7 / brief step 2).
 const HELPER_IMAGE: &str = "ghcr.io/coollabsio/coolify-helper:latest";
@@ -172,7 +174,19 @@ pub struct Engine {
     deployment: Deployment,
     application: Application,
     server: Server,
+    /// The active SSH target for [`Engine::exec_step`]. Starts on the build
+    /// server (`helper_conn`) and switches to `deploy_conn` after a build-server
+    /// push (Coolify `$this->server = $this->build_server` / then restored).
     conn: ServerConn,
+    /// The deploy server connection: compose pull + up + rolling update land here.
+    deploy_conn: ServerConn,
+    /// Where the build helper runs (the build server when one is used, else the
+    /// deploy server). Cleanup tears the helper down here regardless of the
+    /// current `conn`.
+    helper_conn: ServerConn,
+    /// True when build+push runs on a separate build server and the image is
+    /// shipped to the deploy server via a registry (Coolify `$use_build_server`).
+    use_build_server: bool,
     /// Base destination network (the build helper runs on this).
     network: String,
     /// Network the app container joins: the base network for a production
@@ -247,7 +261,43 @@ impl Engine {
             .filter(|v| !v.is_empty())
             .collect();
 
-        let conn = build_conn(&deps.pool, &server, connection_timeout).await;
+        // Build-server planning (Coolify `ApplicationDeploymentJob` build-server
+        // branch, app/Jobs/ApplicationDeploymentJob.php:347-360, 545-546). Only
+        // image-building packs can build on a separate server and ship the image
+        // via a registry; docker-image and compose deploys always run on the
+        // deploy server itself.
+        let deploy_conn = build_conn(&deps.pool, &server, connection_timeout).await;
+        let build_server_applicable = !matches!(
+            Pack::parse(&application.build_pack),
+            Pack::DockerImage | Pack::DockerCompose
+        );
+        let app_build_server_id: Option<i64> =
+            sqlx::query_scalar("SELECT build_server_id FROM applications WHERE id = $1")
+                .bind(application.id)
+                .fetch_one(&deps.pool)
+                .await?;
+        let available_build_server_ids: Vec<i64> = server_repo
+            .build_servers(server.team_id)
+            .await?
+            .into_iter()
+            .map(|s| s.id)
+            .collect();
+        let targets = build_server::plan_build_targets(
+            server.id,
+            app_build_server_id,
+            &available_build_server_ids,
+        );
+        let use_build_server = build_server_applicable && targets.use_build_server;
+        // The helper (and thus the build) runs on the build server when one is
+        // used; `conn` starts there and switches to the deploy server after the
+        // push. Without a build server all three point at the deploy server.
+        let helper_conn = if use_build_server {
+            let build_srv = load_server(&server_repo, &deps.pool, targets.build_server_id).await?;
+            build_conn(&deps.pool, &build_srv, connection_timeout).await
+        } else {
+            deploy_conn.clone()
+        };
+        let conn = helper_conn.clone();
 
         let git_source = resolve_git_source(&deps.pool, &application).await?;
 
@@ -296,6 +346,9 @@ impl Engine {
             application,
             server,
             conn,
+            deploy_conn,
+            helper_conn,
+            use_build_server,
             network,
             deploy_network,
             preview,
@@ -364,7 +417,23 @@ impl Engine {
     async fn run_steps(&mut self) -> Result<(), DeployError> {
         let pack = Pack::parse(&self.application.build_pack);
 
-        // Step 2: bring up the build helper container.
+        // A build server can only ship its image to the deploy server via a
+        // registry, which requires a registry image name. Fail early with a
+        // clear log line rather than building an image that cannot be pushed.
+        if self.use_build_server && self.production_image_ref().is_none() {
+            self.error(
+                "A build server is selected but this application has no docker registry image \
+                 name; the built image cannot be pushed to the deploy server. Set \
+                 docker_registry_image_name and retry.",
+            )
+            .await;
+            return Err(DeployError::Build(
+                "build server requires docker_registry_image_name".into(),
+            ));
+        }
+
+        // Step 2: bring up the build helper container (on the build server when
+        // one is used).
         self.helper_up().await?;
 
         match pack {
@@ -390,13 +459,18 @@ impl Engine {
             _ => {
                 let sha = self.resolve_commit().await?; // step 3
                 self.persist_commit(&sha).await?;
-                let image = match &self.preview {
-                    Some(p) => format!(
-                        "{}:{}",
-                        self.application.uuid,
-                        preview::preview_image_tag(p.pull_request_id as i64, &sha)
-                    ),
-                    None => format!("{}:{}", self.application.uuid, sha),
+                // With a build server the built image IS the registry image (so
+                // it can be pushed); otherwise it is the local `<uuid>:<sha>` tag.
+                let image = match self.production_image_ref() {
+                    Some(reg) if self.use_build_server => reg,
+                    _ => match &self.preview {
+                        Some(p) => format!(
+                            "{}:{}",
+                            self.application.uuid,
+                            preview::preview_image_tag(p.pull_request_id as i64, &sha)
+                        ),
+                        None => format!("{}:{}", self.application.uuid, sha),
+                    },
                 };
                 // Step 4: skip build if the image already exists.
                 if self.skip_build(&image).await? {
@@ -405,6 +479,11 @@ impl Engine {
                 } else {
                     self.clone_repo(&sha).await?; // step 5
                     self.build(pack, &image, &sha).await?; // step 6
+                }
+                // Build server: push the image, then switch the SSH target to the
+                // deploy server for the pull + rollout below.
+                if self.use_build_server {
+                    self.push_build_image(&image).await?;
                 }
                 self.write_config(&image).await?; // step 7
                 rolling::rolling_update(self).await?; // step 8
@@ -979,10 +1058,12 @@ impl Engine {
             "docker rm -f {} >/dev/null 2>&1 || true",
             self.deployment.uuid
         );
+        // The helper lives on the build server when one is used, so tear it down
+        // on `helper_conn` regardless of the current (possibly switched) target.
         let _ = self
             .deps
             .executor
-            .exec(&self.conn, &script, self.exec_opts())
+            .exec(&self.helper_conn, &script, self.exec_opts())
             .await;
         self.info_hidden("Removed build helper container.").await;
     }
@@ -1148,6 +1229,40 @@ impl Engine {
             .iter()
             .map(|e| (e.key.clone(), e.value.clone()))
             .collect()
+    }
+
+    /// The registry image reference (`name:tag`) a build-server deploy pushes,
+    /// or `None` when the application has no `docker_registry_image_name`.
+    fn production_image_ref(&self) -> Option<String> {
+        let name = self.application.docker_registry_image_name.as_deref()?;
+        build_server::registry_image_ref(
+            name,
+            self.application.docker_registry_image_tag.as_deref(),
+        )
+    }
+
+    /// Build-server push: `docker push <image>` on the build server, then switch
+    /// the active SSH target to the deploy server and `docker pull` it there
+    /// (`build_server::push_then_pull`). Subsequent steps (compose pull/up +
+    /// rolling update) then run on the deploy server.
+    async fn push_build_image(&mut self, image: &str) -> Result<(), DeployError> {
+        self.check_cancel().await?;
+        self.info(&format!(
+            "Pushing image to the registry from the build server ({image})."
+        ))
+        .await;
+        build_server::push_then_pull(
+            &*self.deps.executor,
+            &self.helper_conn,
+            &self.deploy_conn,
+            image,
+        )
+        .await
+        .map_err(DeployError::Exec)?;
+        self.info("Switching to the deploy server for the rollout.")
+            .await;
+        self.conn = self.deploy_conn.clone();
+        Ok(())
     }
 
     fn registry_image(&self) -> Result<String, DeployError> {

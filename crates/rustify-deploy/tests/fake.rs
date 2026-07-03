@@ -29,6 +29,9 @@ struct Rule {
 pub struct FakeExecutor {
     rules: Vec<Rule>,
     scripts: Mutex<Vec<String>>,
+    /// The `ServerConn::host` each recorded script ran against, parallel to
+    /// `scripts` (so a test can assert which server a command targeted).
+    hosts: Mutex<Vec<String>>,
     uploads: Mutex<Vec<(PathBuf, String)>>,
     cancel: Option<(String, CancellationToken)>,
     fail_connection_on: Option<String>,
@@ -39,6 +42,7 @@ impl FakeExecutor {
         Self {
             rules: Vec::new(),
             scripts: Mutex::new(Vec::new()),
+            hosts: Mutex::new(Vec::new()),
             uploads: Mutex::new(Vec::new()),
             cancel: None,
             fail_connection_on: None,
@@ -100,8 +104,15 @@ impl FakeExecutor {
         self.index_of(needle).is_some()
     }
 
-    fn record_and_respond(&self, script: &str) -> Result<ExecOutput, ExecError> {
+    /// The `ServerConn::host` the first script containing `needle` ran against.
+    pub fn host_for(&self, needle: &str) -> Option<String> {
+        let idx = self.index_of(needle)?;
+        self.hosts.lock().unwrap().get(idx).cloned()
+    }
+
+    fn record_and_respond(&self, host: &str, script: &str) -> Result<ExecOutput, ExecError> {
         self.scripts.lock().unwrap().push(script.to_string());
+        self.hosts.lock().unwrap().push(host.to_string());
 
         if let Some(needle) = &self.fail_connection_on
             && script.contains(needle.as_str())
@@ -141,21 +152,21 @@ impl Default for FakeExecutor {
 impl CommandExecutor for FakeExecutor {
     async fn exec(
         &self,
-        _conn: &ServerConn,
+        conn: &ServerConn,
         script: &str,
         _opts: ExecOpts,
     ) -> Result<ExecOutput, ExecError> {
-        self.record_and_respond(script)
+        self.record_and_respond(&conn.host, script)
     }
 
     async fn exec_streaming(
         &self,
-        _conn: &ServerConn,
+        conn: &ServerConn,
         script: &str,
         _opts: ExecOpts,
         tx: mpsc::Sender<ExecEvent>,
     ) -> Result<ExecOutput, ExecError> {
-        let out = self.record_and_respond(script)?;
+        let out = self.record_and_respond(&conn.host, script)?;
         for line in out.stdout.lines() {
             let _ = tx.send(ExecEvent::Stdout(line.to_string())).await;
         }

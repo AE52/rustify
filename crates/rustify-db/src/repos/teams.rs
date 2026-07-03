@@ -10,7 +10,7 @@ use sqlx::PgPool;
 
 use rustify_core::{Role, ids};
 
-use crate::DbResult;
+use crate::{DbError, DbResult};
 
 /// Invitation link/email validity window (Coolify
 /// `config('constants.invitation.link.expiration_days')` = 3).
@@ -209,7 +209,43 @@ impl TeamRepo {
         Ok(())
     }
 
+    /// Change a member's role, never leaving the team without an owner.
+    /// Demoting the team's *only* owner (owner → admin/member) is rejected with
+    /// [`DbError::Invalid`]; any other change applies and then runs
+    /// [`reconcile_ownership`](Self::reconcile_ownership) — the same guard
+    /// `remove_member` uses — so the team always retains an owner. Returns
+    /// `false` when the user is not a member of the team.
     pub async fn set_role(&self, team_id: i64, user_id: i64, role: Role) -> DbResult<bool> {
+        let mut tx = self.pool.begin().await?;
+
+        let current: Option<String> = sqlx::query_scalar(
+            "SELECT role FROM team_user WHERE team_id = $1 AND user_id = $2 FOR UPDATE",
+        )
+        .bind(team_id)
+        .bind(user_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let Some(current) = current else {
+            tx.rollback().await?;
+            return Ok(false);
+        };
+
+        // Reject demoting the sole owner: it would leave the team ownerless.
+        if Role::from_str_coerce(&current) == Role::Owner && role != Role::Owner {
+            let owners: i64 = sqlx::query_scalar(
+                "SELECT count(*) FROM team_user WHERE team_id = $1 AND role = 'owner'",
+            )
+            .bind(team_id)
+            .fetch_one(&mut *tx)
+            .await?;
+            if owners <= 1 {
+                tx.rollback().await?;
+                return Err(DbError::Invalid(
+                    "cannot demote the team's only owner; promote another member first".into(),
+                ));
+            }
+        }
+
         let result = sqlx::query(
             "UPDATE team_user SET role = $3, updated_at = now()
              WHERE team_id = $1 AND user_id = $2",
@@ -217,8 +253,13 @@ impl TeamRepo {
         .bind(team_id)
         .bind(user_id)
         .bind(role.as_str())
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        // Defensive: promote the earliest member if the change still left the
+        // team without an owner (parity with remove_member).
+        Self::reconcile_ownership(&mut tx, team_id).await?;
+        tx.commit().await?;
         Ok(result.rows_affected() == 1)
     }
 

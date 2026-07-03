@@ -29,6 +29,8 @@ pub enum DbError {
     Json(#[from] serde_json::Error),
     #[error("configuration: {0}")]
     Config(String),
+    #[error("invalid: {0}")]
+    Invalid(String),
     #[error("not found")]
     NotFound,
 }
