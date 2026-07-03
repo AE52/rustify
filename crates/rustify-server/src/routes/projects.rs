@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 use rustify_db::repos::{Environment, Project, ProjectRepo};
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -102,6 +102,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<ProjectCreate>,
 ) -> ApiResult<Response> {
     let project = ProjectRepo::new(state.pool.clone())
@@ -139,6 +140,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ProjectUpdate>,
 ) -> ApiResult<Json<ProjectDto>> {
@@ -159,6 +161,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     owned(&state, &team, &uuid).await?;
@@ -191,6 +194,7 @@ pub async fn list_environments(
 pub async fn create_environment(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<EnvironmentCreate>,
 ) -> ApiResult<Response> {

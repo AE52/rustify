@@ -17,7 +17,7 @@ use rustify_db::repos::{
 };
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 const BUILD_PACKS: [&str; 6] = [
@@ -363,6 +363,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<ApplicationCreate>,
 ) -> ApiResult<Response> {
     let is_github_source = body.source.as_deref() == Some("github_app");
@@ -501,6 +502,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ApplicationUpdate>,
 ) -> ApiResult<Json<ApplicationDto>> {
@@ -551,6 +553,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     resolve(&state, &team, &uuid).await?;
@@ -741,6 +744,7 @@ pub async fn list_envs(
 pub async fn create_env(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<EnvVarCreate>,
 ) -> ApiResult<Response> {
@@ -772,6 +776,7 @@ pub async fn create_env(
 pub async fn update_env(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path((uuid, env_uuid)): Path<(String, String)>,
     Json(body): Json<EnvVarUpdate>,
 ) -> ApiResult<Json<EnvVarDto>> {
@@ -815,6 +820,7 @@ pub async fn update_env(
 pub async fn delete_env(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path((uuid, env_uuid)): Path<(String, String)>,
 ) -> ApiResult<StatusCode> {
     let ctx = resolve(&state, &team, &uuid).await?;

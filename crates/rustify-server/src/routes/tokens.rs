@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 use rustify_db::repos::SettingsRepo;
 
 use crate::app::AppState;
-use crate::auth::{CurrentTeam, generate_token, sha256_hex};
+use crate::auth::{CurrentTeam, RequireAdmin, generate_token, sha256_hex};
 use crate::error::{ApiError, ApiResult};
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -65,6 +65,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<ApiTokenCreate>,
 ) -> ApiResult<Response> {
     let raw = generate_token();
@@ -92,6 +93,7 @@ pub async fn create(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     let repo = SettingsRepo::new(state.pool.clone());

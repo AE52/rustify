@@ -19,7 +19,7 @@ use rustify_db::repos::{
 };
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 const BACKUP_JOB_KIND: &str = "database_backup";
@@ -246,6 +246,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<BackupCreate>,
 ) -> ApiResult<Response> {
@@ -305,6 +306,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<BackupUpdate>,
 ) -> ApiResult<Json<BackupDto>> {
@@ -346,6 +348,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     owned_backup(&state, &team, &uuid).await?;

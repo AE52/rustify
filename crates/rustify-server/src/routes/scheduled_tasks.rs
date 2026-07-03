@@ -18,7 +18,7 @@ use rustify_db::repos::{
 use rustify_deploy::SCHEDULED_TASK_KIND;
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 // ----- DTOs ---------------------------------------------------------------
@@ -196,6 +196,7 @@ pub async fn list_for_application(
 pub async fn create_for_application(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ScheduledTaskCreate>,
 ) -> ApiResult<Response> {
@@ -230,6 +231,7 @@ pub async fn list_for_service(
 pub async fn create_for_service(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ScheduledTaskCreate>,
 ) -> ApiResult<Response> {
@@ -297,6 +299,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ScheduledTaskUpdate>,
 ) -> ApiResult<Json<ScheduledTaskDto>> {
@@ -326,6 +329,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     resolve_task(&state, &team, &uuid).await?;

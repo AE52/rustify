@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 use rustify_db::repos::{KeyRepo, PrivateKey};
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 /// A private key as returned by the API (private material elided).
@@ -107,6 +107,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<PrivateKeyCreate>,
 ) -> ApiResult<Response> {
     let public_key = derive_public_key(&body.private_key)?;
@@ -126,6 +127,7 @@ pub async fn create(
 pub async fn generate(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<PrivateKeyGenerate>,
 ) -> ApiResult<Response> {
     let mut rng = rand::rngs::OsRng;
@@ -180,6 +182,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<PrivateKeyUpdate>,
 ) -> ApiResult<Json<PrivateKeyDto>> {
@@ -210,6 +213,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     owned(&state, &team, &uuid).await?;

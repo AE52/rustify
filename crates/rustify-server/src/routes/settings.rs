@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 use rustify_db::repos::SettingsRepo;
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::ApiResult;
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -49,6 +49,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     _team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<InstanceSettingsUpdate>,
 ) -> ApiResult<Json<InstanceSettingsDto>> {
     let repo = SettingsRepo::new(state.pool.clone());

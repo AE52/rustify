@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 use rustify_db::repos::{NewS3Storage, S3Storage, S3StoragePatch, S3StorageRepo};
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -109,6 +109,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<S3StorageCreate>,
 ) -> ApiResult<Response> {
     if body.bucket.trim().is_empty() {
@@ -150,6 +151,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<S3StorageUpdate>,
 ) -> ApiResult<Json<S3StorageDto>> {
@@ -180,6 +182,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     owned(&state, &team, &uuid).await?;
