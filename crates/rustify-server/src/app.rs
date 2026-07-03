@@ -14,8 +14,8 @@ use rustify_jobs::JobQueue;
 
 use crate::routes::{
     applications, auth, backups, databases, deployments, github_apps, health, keys, notifications,
-    projects, s3_storages, scheduled_tasks, servers, service_templates, services, settings, tokens,
-    webhooks,
+    previews, projects, s3_storages, scheduled_tasks, servers, service_templates, services,
+    settings, tokens, webhooks,
 };
 use crate::{embed, ws};
 
@@ -123,6 +123,9 @@ pub struct AppState {
         applications::create_env,
         applications::update_env,
         applications::delete_env,
+        previews::list,
+        previews::redeploy,
+        previews::cleanup,
         deployments::list,
         deployments::get,
         deployments::cancel,
@@ -133,6 +136,7 @@ pub struct AppState {
         github_apps::delete,
         github_apps::repositories,
         github_apps::branches,
+        github_apps::manifest_state,
         databases::list,
         databases::create,
         databases::get,
@@ -212,6 +216,8 @@ pub struct AppState {
         applications::EnvVarDto,
         applications::EnvVarCreate,
         applications::EnvVarUpdate,
+        previews::PreviewDto,
+        previews::PreviewRedeployResponse,
         deployments::DeploymentDto,
         deployments::LogLineDto,
         deployments::DeploymentDetailDto,
@@ -220,6 +226,7 @@ pub struct AppState {
         github_apps::GithubAppUpdate,
         github_apps::RepositoriesResponse,
         github_apps::BranchesResponse,
+        github_apps::ManifestStateResponse,
         databases::DatabaseDto,
         databases::DatabaseCreate,
         databases::DatabaseUpdate,
@@ -358,6 +365,15 @@ fn api_router() -> Router<AppState> {
             "/api/v1/applications/{uuid}/envs/{env_uuid}",
             patch(applications::update_env).delete(applications::delete_env),
         )
+        .route("/api/v1/applications/{uuid}/previews", get(previews::list))
+        .route(
+            "/api/v1/applications/{uuid}/previews/{pr}/redeploy",
+            post(previews::redeploy),
+        )
+        .route(
+            "/api/v1/applications/{uuid}/previews/{pr}",
+            axum::routing::delete(previews::cleanup),
+        )
         // databases
         .route(
             "/api/v1/databases",
@@ -410,6 +426,10 @@ fn api_router() -> Router<AppState> {
             get(github_apps::get)
                 .patch(github_apps::update)
                 .delete(github_apps::delete),
+        )
+        .route(
+            "/api/v1/github-apps/{uuid}/manifest-state",
+            post(github_apps::manifest_state),
         )
         .route(
             "/api/v1/github-apps/{uuid}/repositories",

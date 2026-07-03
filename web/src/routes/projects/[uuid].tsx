@@ -4,11 +4,16 @@ import { Link, useNavigate, useParams } from 'react-router'
 import {
   api,
   type Application,
+  type BranchesResponse,
   type BuildPack,
   type Environment,
+  type GithubApp,
+  type PrivateKey,
   type Project,
+  type RepositoriesResponse,
   type Server,
 } from '../../api/client'
+import { parseBranch, parseRepo, type GithubRepo } from '../../lib/github'
 import { ConfirmDanger } from '../../components/ConfirmDanger'
 import { StatusBadge } from '../../components/StatusBadge'
 import {
@@ -25,7 +30,108 @@ import {
 
 const BUILD_PACKS: BuildPack[] = ['nixpacks', 'dockerfile', 'static', 'docker_image', 'docker_compose', 'railpack']
 
-function NewAppForm({
+type SourceKind = 'public' | 'github_app' | 'deploy_key'
+
+/** GitHub App source: pick app -> repo -> branch. Reports selection upward. */
+function GithubAppSource({
+  onSelect,
+}: {
+  onSelect: (v: { appUuid: string; repo: GithubRepo | null; branch: string }) => void
+}) {
+  const [appUuid, setAppUuid] = useState('')
+  const [repo, setRepo] = useState<GithubRepo | null>(null)
+  const [branch, setBranch] = useState('')
+
+  const apps = useQuery({ queryKey: ['github-apps'], queryFn: () => api.get<GithubApp[]>('/github-apps') })
+  const repos = useQuery({
+    queryKey: ['github-app', appUuid, 'repositories'],
+    queryFn: () => api.get<RepositoriesResponse>(`/github-apps/${appUuid}/repositories`),
+    enabled: Boolean(appUuid),
+  })
+  const parsedRepos = (repos.data?.repositories ?? [])
+    .map(parseRepo)
+    .filter((r): r is GithubRepo => r !== null)
+
+  const branches = useQuery({
+    queryKey: ['github-app', appUuid, 'branches', repo?.full_name],
+    queryFn: () =>
+      api.get<BranchesResponse>(`/github-apps/${appUuid}/repositories/${repo!.owner}/${repo!.name}/branches`),
+    enabled: Boolean(appUuid && repo),
+  })
+  const parsedBranches = (branches.data?.branches ?? [])
+    .map(parseBranch)
+    .filter((b): b is string => b !== null)
+
+  return (
+    <>
+      <Field label="GitHub App">
+        <select
+          aria-label="GitHub App"
+          className={selectCls}
+          value={appUuid}
+          onChange={(e) => {
+            setAppUuid(e.target.value)
+            setRepo(null)
+            setBranch('')
+            onSelect({ appUuid: e.target.value, repo: null, branch: '' })
+          }}
+        >
+          <option value="">— select an app —</option>
+          {apps.data?.map((a) => (
+            <option key={a.uuid} value={a.uuid}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      {appUuid && (
+        <Field label="Repository">
+          <select
+            aria-label="Repository"
+            className={selectCls}
+            value={repo?.full_name ?? ''}
+            onChange={(e) => {
+              const r = parsedRepos.find((x) => x.full_name === e.target.value) ?? null
+              const b = r?.default_branch ?? ''
+              setRepo(r)
+              setBranch(b)
+              onSelect({ appUuid, repo: r, branch: b })
+            }}
+          >
+            <option value="">— select a repository —</option>
+            {parsedRepos.map((r) => (
+              <option key={r.id || r.full_name} value={r.full_name}>
+                {r.full_name}
+                {r.private ? ' (private)' : ''}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+      {repo && (
+        <Field label="Branch">
+          <select
+            aria-label="Branch"
+            className={selectCls}
+            value={branch}
+            onChange={(e) => {
+              setBranch(e.target.value)
+              onSelect({ appUuid, repo, branch: e.target.value })
+            }}
+          >
+            {parsedBranches.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+    </>
+  )
+}
+
+export function NewAppForm({
   projectUuid,
   environmentName,
   onCreated,
@@ -35,27 +141,61 @@ function NewAppForm({
   onCreated: (app: Application) => void
 }) {
   const [name, setName] = useState('')
+  const [sourceKind, setSourceKind] = useState<SourceKind>('public')
   const [repo, setRepo] = useState('')
   const [branch, setBranch] = useState('main')
   const [buildPack, setBuildPack] = useState<BuildPack>('nixpacks')
   const [ports, setPorts] = useState('80')
   const [serverUuid, setServerUuid] = useState('')
+  const [privateKeyUuid, setPrivateKeyUuid] = useState('')
+  const [ghSel, setGhSel] = useState<{ appUuid: string; repo: GithubRepo | null; branch: string }>({
+    appUuid: '',
+    repo: null,
+    branch: '',
+  })
 
   const servers = useQuery({ queryKey: ['servers'], queryFn: () => api.get<Server[]>('/servers') })
+  const keys = useQuery({
+    queryKey: ['private-keys'],
+    queryFn: () => api.get<PrivateKey[]>('/private-keys'),
+    enabled: sourceKind === 'deploy_key',
+  })
   const selectedServer = serverUuid || servers.data?.[0]?.uuid || ''
 
   const create = useMutation({
-    mutationFn: () =>
-      api.post<Application>('/applications', {
+    mutationFn: () => {
+      const common = {
         project_uuid: projectUuid,
         environment_name: environmentName,
         server_uuid: selectedServer,
         name,
-        git_repository: repo,
-        git_branch: branch,
         build_pack: buildPack,
         ports_exposes: ports,
-      }),
+      }
+      if (sourceKind === 'github_app') {
+        return api.post<Application>('/applications', {
+          ...common,
+          source: 'github_app',
+          github_app_uuid: ghSel.appUuid,
+          git_repository: ghSel.repo?.full_name ?? '',
+          git_branch: ghSel.branch,
+          is_private: ghSel.repo?.private ?? true,
+        })
+      }
+      if (sourceKind === 'deploy_key') {
+        return api.post<Application>('/applications', {
+          ...common,
+          private_key_uuid: privateKeyUuid,
+          git_repository: repo,
+          git_branch: branch,
+        })
+      }
+      return api.post<Application>('/applications', {
+        ...common,
+        git_repository: repo,
+        git_branch: branch,
+      })
+    },
     onSuccess: onCreated,
   })
 
@@ -63,6 +203,13 @@ function NewAppForm({
     e.preventDefault()
     create.mutate()
   }
+
+  const sourceReady =
+    sourceKind === 'github_app'
+      ? Boolean(ghSel.appUuid && ghSel.repo && ghSel.branch)
+      : sourceKind === 'deploy_key'
+        ? Boolean(privateKeyUuid && repo.trim())
+        : repo.trim() !== ''
 
   return (
     <form onSubmit={submit} className={`${cardCls} flex flex-col gap-4`}>
@@ -81,18 +228,60 @@ function NewAppForm({
           </select>
         </Field>
       </div>
-      <Field label="Git repository">
-        <input
-          className={inputCls}
-          value={repo}
-          onChange={(e) => setRepo(e.target.value)}
-          placeholder="https://github.com/acme/app.git"
-        />
+
+      <Field label="Source">
+        <select
+          aria-label="Source"
+          className={selectCls}
+          value={sourceKind}
+          onChange={(e) => setSourceKind(e.target.value as SourceKind)}
+        >
+          <option value="public">Public Git URL</option>
+          <option value="github_app">GitHub App</option>
+          <option value="deploy_key">Deploy Key (private SSH)</option>
+        </select>
       </Field>
-      <div className="grid grid-cols-3 gap-3">
-        <Field label="Branch">
-          <input className={inputCls} value={branch} onChange={(e) => setBranch(e.target.value)} />
-        </Field>
+
+      {sourceKind === 'github_app' ? (
+        <GithubAppSource onSelect={setGhSel} />
+      ) : (
+        <>
+          {sourceKind === 'deploy_key' && (
+            <Field label="Private key">
+              <select
+                aria-label="Private key"
+                className={selectCls}
+                value={privateKeyUuid}
+                onChange={(e) => setPrivateKeyUuid(e.target.value)}
+              >
+                <option value="">— select a key —</option>
+                {keys.data?.map((k) => (
+                  <option key={k.uuid} value={k.uuid}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          <Field label="Git repository">
+            <input
+              className={inputCls}
+              value={repo}
+              onChange={(e) => setRepo(e.target.value)}
+              placeholder={
+                sourceKind === 'deploy_key'
+                  ? 'git@github.com:acme/app.git'
+                  : 'https://github.com/acme/app.git'
+              }
+            />
+          </Field>
+          <Field label="Branch">
+            <input className={inputCls} value={branch} onChange={(e) => setBranch(e.target.value)} />
+          </Field>
+        </>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
         <Field label="Build pack">
           <select className={selectCls} value={buildPack} onChange={(e) => setBuildPack(e.target.value as BuildPack)}>
             {BUILD_PACKS.map((bp) => (
@@ -110,7 +299,7 @@ function NewAppForm({
       <button
         type="submit"
         className={`${btnPrimary} w-fit`}
-        disabled={create.isPending || !name.trim() || !repo.trim() || !selectedServer}
+        disabled={create.isPending || !name.trim() || !sourceReady || !selectedServer}
       >
         {create.isPending ? 'Creating…' : 'Create application'}
       </button>

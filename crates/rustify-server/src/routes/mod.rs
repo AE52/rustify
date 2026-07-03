@@ -9,6 +9,7 @@ pub mod github_apps;
 pub mod health;
 pub mod keys;
 pub mod notifications;
+pub mod previews;
 pub mod projects;
 pub mod s3_storages;
 pub mod scheduled_tasks;
