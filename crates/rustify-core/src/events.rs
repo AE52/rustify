@@ -67,6 +67,15 @@ impl WsEvent {
         )
     }
 
+    /// A standalone database's container status changed (`database:<uuid>`).
+    pub fn database_status_changed(database_uuid: &str, status: &str) -> Self {
+        Self::new(
+            format!("database:{database_uuid}"),
+            "database_status_changed",
+            json!({ "uuid": database_uuid, "status": status }),
+        )
+    }
+
     /// A line of output from a server-level task (validation/setup), streamed
     /// to `server:<uuid>`.
     pub fn server_log(server_uuid: &str, kind: &str, content: &str) -> Self {
