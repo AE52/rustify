@@ -12,6 +12,7 @@ pub mod compose;
 pub mod docker_image;
 pub mod dockerfile;
 pub mod nixpacks;
+pub mod railpack;
 pub mod static_site;
 
 /// The supported buildpacks (Contract C2 `BuildPack`).
@@ -22,6 +23,7 @@ pub enum Pack {
     Static,
     DockerImage,
     DockerCompose,
+    Railpack,
 }
 
 impl Pack {
@@ -40,6 +42,7 @@ impl Pack {
             "static" => Pack::Static,
             "dockerimage" => Pack::DockerImage,
             "dockercompose" => Pack::DockerCompose,
+            "railpack" => Pack::Railpack,
             _ => Pack::Nixpacks,
         }
     }
@@ -74,6 +77,8 @@ mod tests {
         assert_eq!(Pack::parse("docker_compose"), Pack::DockerCompose);
         assert_eq!(Pack::parse("dockercompose"), Pack::DockerCompose);
         assert_eq!(Pack::parse("DockerCompose"), Pack::DockerCompose);
+        assert_eq!(Pack::parse("railpack"), Pack::Railpack);
+        assert_eq!(Pack::parse("Railpack"), Pack::Railpack);
         assert_eq!(Pack::parse("weird"), Pack::Nixpacks);
     }
 }

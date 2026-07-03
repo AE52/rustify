@@ -20,12 +20,13 @@ use crate::app::AppState;
 use crate::auth::CurrentTeam;
 use crate::error::{ApiError, ApiResult};
 
-const BUILD_PACKS: [&str; 5] = [
+const BUILD_PACKS: [&str; 6] = [
     "nixpacks",
     "dockerfile",
     "static",
     "docker_image",
     "docker_compose",
+    "railpack",
 ];
 const ENV_RESOURCE_KIND: &str = "application";
 

@@ -37,6 +37,7 @@ pub enum BuildPack {
     Static,
     DockerImage,
     DockerCompose,
+    Railpack,
 }
 
 #[cfg(test)]
@@ -138,5 +139,6 @@ mod tests {
         assert_eq!(json(BuildPack::Static), "\"static\"");
         assert_eq!(json(BuildPack::DockerImage), "\"docker_image\"");
         assert_eq!(json(BuildPack::DockerCompose), "\"docker_compose\"");
+        assert_eq!(json(BuildPack::Railpack), "\"railpack\"");
     }
 }

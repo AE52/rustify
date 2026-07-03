@@ -163,7 +163,7 @@ export default function ApplicationGeneral() {
     save.mutate()
   }
 
-  const buildPacks: BuildPack[] = ['nixpacks', 'dockerfile', 'static', 'docker_image', 'docker_compose']
+  const buildPacks: BuildPack[] = ['nixpacks', 'dockerfile', 'static', 'docker_image', 'docker_compose', 'railpack']
 
   return (
     <div className="flex flex-col gap-8">

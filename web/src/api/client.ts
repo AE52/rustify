@@ -13,7 +13,13 @@ export type Project = Schemas['ProjectDto']
 export type Environment = Schemas['EnvironmentDto']
 export type Application = Schemas['ApplicationDto']
 export type ApplicationCreate = Schemas['ApplicationCreate']
-export type BuildPack = 'nixpacks' | 'dockerfile' | 'static' | 'docker_image' | 'docker_compose'
+export type BuildPack =
+  | 'nixpacks'
+  | 'dockerfile'
+  | 'static'
+  | 'docker_image'
+  | 'docker_compose'
+  | 'railpack'
 export type EnvVar = Schemas['EnvVarDto']
 export type Deployment = Schemas['DeploymentDto']
 export type DeploymentDetail = Schemas['DeploymentDetailDto']

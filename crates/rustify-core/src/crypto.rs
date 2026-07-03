@@ -10,6 +10,8 @@ use aes_gcm::aead::{Aead, AeadCore, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 
 use crate::error::CoreError;
 
@@ -85,6 +87,39 @@ pub fn decrypt(blob: &[u8]) -> Result<Vec<u8>, CoreError> {
         .map_err(|_| CoreError::Decrypt)
 }
 
+/// Deterministic HMAC-SHA256 fingerprint of a set of build-time variables, used
+/// as the Railpack `--build-arg secrets-hash=` cache buster.
+///
+/// Parity with Coolify's `generate_secrets_hash` (ApplicationDeploymentJob.php:4086):
+/// the variables are rendered as `KEY=VALUE`, sorted by key, joined with `|`,
+/// then HMAC-SHA256'd. Coolify keys the HMAC on `config('app.key')`; here the
+/// deterministic key is the decoded `RUSTIFY_SECRET_KEY`, so the digest is
+/// stable across deployments (preserving Docker build cache) yet secret. The
+/// output is lowercase hex, matching PHP's `hash_hmac`.
+///
+/// Only the sorted `KEY=VALUE` string is hashed — never logged — so values are
+/// never exposed even though the digest changes whenever a value does.
+pub fn secrets_hash(vars: &[(String, String)]) -> Result<String, CoreError> {
+    let key = key()?;
+    let mut pairs: Vec<String> = vars.iter().map(|(k, v)| format!("{k}={v}")).collect();
+    pairs.sort();
+    let joined = pairs.join("|");
+    let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(&key)
+        .map_err(|_| CoreError::InvalidKey("hmac".into()))?;
+    mac.update(joined.as_bytes());
+    Ok(to_hex(&mac.finalize().into_bytes()))
+}
+
+/// Lowercase-hex encode, matching PHP's `hash_hmac('sha256', ...)` output.
+fn to_hex(bytes: &[u8]) -> String {
+    use std::fmt::Write as _;
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        let _ = write!(s, "{b:02x}");
+    }
+    s
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,6 +190,28 @@ mod tests {
         assert_eq!(parse_key(raw).unwrap(), [0u8; 32]);
         // surrounding whitespace tolerated
         assert_eq!(parse_key(&format!(" {raw}\n")).unwrap(), [0u8; 32]);
+    }
+
+    #[test]
+    fn secrets_hash_is_deterministic_and_order_independent() {
+        init_key();
+        let a = secrets_hash(&[("B".into(), "2".into()), ("A".into(), "1".into())]).unwrap();
+        let b = secrets_hash(&[("A".into(), "1".into()), ("B".into(), "2".into())]).unwrap();
+        assert_eq!(a, b, "sorting by key makes input order irrelevant");
+        // 32-byte digest → 64 lowercase-hex chars.
+        assert_eq!(a.len(), 64);
+        assert!(
+            a.chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        );
+    }
+
+    #[test]
+    fn secrets_hash_changes_when_a_value_changes() {
+        init_key();
+        let base = secrets_hash(&[("TOKEN".into(), "old".into())]).unwrap();
+        let bumped = secrets_hash(&[("TOKEN".into(), "new".into())]).unwrap();
+        assert_ne!(base, bumped, "a changed secret must bust the cache");
     }
 
     #[test]
