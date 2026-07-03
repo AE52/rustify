@@ -103,6 +103,21 @@ impl WsEvent {
             json!({ "uuid": service_uuid, "kind": kind, "content": content }),
         )
     }
+
+    /// A scheduled database backup execution changed state (`backup:<uuid>`),
+    /// carrying the execution uuid and its new status (`running` / `success` /
+    /// `failed`).
+    pub fn backup_status_changed(backup_uuid: &str, execution_uuid: &str, status: &str) -> Self {
+        Self::new(
+            format!("backup:{backup_uuid}"),
+            "backup_status_changed",
+            json!({
+                "backup_uuid": backup_uuid,
+                "execution_uuid": execution_uuid,
+                "status": status,
+            }),
+        )
+    }
 }
 
 #[cfg(test)]
