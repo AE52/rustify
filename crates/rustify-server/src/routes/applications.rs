@@ -213,16 +213,20 @@ pub struct LogsQuery {
 // ----- Resolution helpers -------------------------------------------------
 
 /// An application plus the related rows needed to render/act on it.
-struct AppContext {
-    app: Application,
+pub(crate) struct AppContext {
+    pub(crate) app: Application,
     environment_uuid: String,
     project_uuid: String,
-    server: Server,
+    pub(crate) server: Server,
 }
 
 /// Resolve an application by uuid and enforce team ownership (via its
 /// environment → project → team chain).
-async fn resolve(state: &AppState, team: &CurrentTeam, uuid: &str) -> ApiResult<AppContext> {
+pub(crate) async fn resolve(
+    state: &AppState,
+    team: &CurrentTeam,
+    uuid: &str,
+) -> ApiResult<AppContext> {
     let app = ApplicationRepo::new(state.pool.clone())
         .get_by_uuid(uuid)
         .await?

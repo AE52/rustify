@@ -104,6 +104,13 @@ pub struct GithubAppUpdate {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
+pub struct ManifestStateResponse {
+    /// Single-use `state` token to embed in the app-manifest form POST; the
+    /// redirect handler consumes it to resolve the team + app.
+    pub state: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
 pub struct RepositoriesResponse {
     pub repositories: Vec<serde_json::Value>,
 }
@@ -258,6 +265,27 @@ pub async fn delete(
     } else {
         Err(ApiError::NotFound)
     }
+}
+
+/// Mint a single-use `state` token for the app-manifest web flow. The UI builds
+/// the manifest JSON client-side and form-POSTs it to
+/// `{html_url}/settings/apps/new?state={state}`; GitHub then redirects to
+/// [`redirect`], which consumes this state to resolve the team + app.
+#[utoipa::path(post, path = "/github-apps/{uuid}/manifest-state",
+    operation_id = "github_app_manifest_state", tag = "github-apps",
+    params(("uuid" = String, Path, description = "GitHub app uuid")),
+    responses(
+        (status = 200, description = "Manifest setup state", body = ManifestStateResponse),
+        (status = 404, description = "Not found", body = crate::error::ApiErrorBody),
+    ))]
+pub async fn manifest_state(
+    State(state): State<AppState>,
+    team: CurrentTeam,
+    Path(uuid): Path<String>,
+) -> ApiResult<Json<ManifestStateResponse>> {
+    let gh = owned(&state, &team, &uuid).await?;
+    let token = store_setup_state("manifest", gh.id, team.id, Utc::now());
+    Ok(Json(ManifestStateResponse { state: token }))
 }
 
 // ----- GitHub-backed reads ------------------------------------------------
