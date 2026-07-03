@@ -16,6 +16,7 @@ path = "src/lib.rs"
 [dependencies]
 rustify-core = { path = "../rustify-core" }
 rustify-db = { path = "../rustify-db" }
+rustify-docker = { path = "../rustify-docker" }
 rustify-jobs = { path = "../rustify-jobs" }
 rustify-ssh = { path = "../rustify-ssh" }
 rustify-deploy = { path = "../rustify-deploy" }

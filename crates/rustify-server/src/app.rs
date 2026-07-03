@@ -13,7 +13,8 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, databases, deployments, health, keys, projects, servers, settings, tokens,
+    applications, auth, databases, deployments, health, keys, projects, servers, service_templates,
+    services, settings, tokens,
 };
 use crate::{embed, ws};
 
@@ -132,6 +133,16 @@ pub struct AppState {
         databases::start,
         databases::stop,
         databases::restart,
+        service_templates::list,
+        service_templates::get,
+        services::list,
+        services::create,
+        services::get,
+        services::update,
+        services::delete,
+        services::deploy,
+        services::stop,
+        services::restart,
         settings::get,
         settings::update,
         tokens::list,
@@ -174,6 +185,12 @@ pub struct AppState {
         databases::DatabaseDto,
         databases::DatabaseCreate,
         databases::DatabaseUpdate,
+        service_templates::ServiceTemplateDto,
+        service_templates::ServiceTemplateDetailDto,
+        services::ServiceDto,
+        services::ServiceApplicationDto,
+        services::ServiceCreate,
+        services::ServiceUpdate,
         settings::InstanceSettingsDto,
         settings::InstanceSettingsUpdate,
         tokens::ApiTokenDto,
@@ -189,6 +206,8 @@ pub struct AppState {
         (name = "applications", description = "Applications, deploys, env vars, logs"),
         (name = "deployments", description = "Deployments"),
         (name = "databases", description = "Standalone databases"),
+        (name = "service-templates", description = "One-click service catalog"),
+        (name = "services", description = "One-click services"),
         (name = "settings", description = "Instance settings"),
         (name = "api-tokens", description = "API tokens"),
     )
@@ -301,6 +320,26 @@ fn api_router() -> Router<AppState> {
             "/api/v1/deployments/{uuid}/cancel",
             post(deployments::cancel),
         )
+        // service templates (catalog)
+        .route("/api/v1/service-templates", get(service_templates::list))
+        .route(
+            "/api/v1/service-templates/{key}",
+            get(service_templates::get),
+        )
+        // services
+        .route(
+            "/api/v1/services",
+            get(services::list).post(services::create),
+        )
+        .route(
+            "/api/v1/services/{uuid}",
+            get(services::get)
+                .patch(services::update)
+                .delete(services::delete),
+        )
+        .route("/api/v1/services/{uuid}/deploy", post(services::deploy))
+        .route("/api/v1/services/{uuid}/stop", post(services::stop))
+        .route("/api/v1/services/{uuid}/restart", post(services::restart))
         // settings
         .route(
             "/api/v1/settings",

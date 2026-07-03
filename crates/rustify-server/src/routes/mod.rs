@@ -8,5 +8,7 @@ pub mod health;
 pub mod keys;
 pub mod projects;
 pub mod servers;
+pub mod service_templates;
+pub mod services;
 pub mod settings;
 pub mod tokens;
