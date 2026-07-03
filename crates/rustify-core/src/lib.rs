@@ -6,6 +6,7 @@
 //! machine) and C3 (log line shape), plus crypto, id generation and secret
 //! redaction helpers.
 
+pub mod backup_cmd;
 pub mod crypto;
 pub mod db_engine;
 pub mod deployment;
@@ -16,6 +17,7 @@ pub mod ids;
 pub mod logline;
 pub mod passwords;
 pub mod redact;
+pub mod retention;
 pub mod service_vars;
 
 pub use db_engine::{DatabaseCredentials, DatabaseEngine, EngineDescriptor};
@@ -26,3 +28,4 @@ pub use exec::{CommandExecutor, ExecError, ExecEvent, ExecOpts, ExecOutput, Serv
 pub use logline::LogLine;
 pub use passwords::gen_password;
 pub use redact::redact;
+pub use retention::{ExecMeta, select_for_deletion};

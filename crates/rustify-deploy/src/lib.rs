@@ -27,6 +27,7 @@ use sqlx::PgPool;
 use tokio::sync::broadcast;
 
 pub mod admission;
+pub mod backup;
 pub mod buildpacks;
 pub mod database;
 pub mod engine;
@@ -37,6 +38,10 @@ pub mod server_setup;
 pub mod service;
 pub mod status_sync;
 
+pub use backup::{
+    DATABASE_BACKUP_KIND, DatabaseBackupHandler, backup_dispatcher_task, cron_is_due,
+    dispatch_due_backups, run_backup,
+};
 pub use database::{StartDatabaseHandler, StopDatabaseHandler, start_database, stop_database};
 pub use engine::{DeployJobHandler, run_deployment};
 pub use server_setup::ServerSetupHandler;

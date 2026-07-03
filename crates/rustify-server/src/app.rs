@@ -13,8 +13,8 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, databases, deployments, health, keys, projects, servers, service_templates,
-    services, settings, tokens,
+    applications, auth, backups, databases, deployments, health, keys, projects, s3_storages,
+    servers, service_templates, services, settings, tokens,
 };
 use crate::{embed, ws};
 
@@ -133,6 +133,19 @@ pub struct AppState {
         databases::start,
         databases::stop,
         databases::restart,
+        backups::list,
+        backups::create,
+        backups::get,
+        backups::update,
+        backups::delete,
+        backups::trigger,
+        backups::executions,
+        s3_storages::list,
+        s3_storages::create,
+        s3_storages::get,
+        s3_storages::update,
+        s3_storages::delete,
+        s3_storages::test,
         service_templates::list,
         service_templates::get,
         services::list,
@@ -185,6 +198,14 @@ pub struct AppState {
         databases::DatabaseDto,
         databases::DatabaseCreate,
         databases::DatabaseUpdate,
+        backups::BackupDto,
+        backups::BackupCreate,
+        backups::BackupUpdate,
+        backups::ExecutionDto,
+        s3_storages::S3StorageDto,
+        s3_storages::S3StorageCreate,
+        s3_storages::S3StorageUpdate,
+        s3_storages::S3TestResponse,
         service_templates::ServiceTemplateDto,
         service_templates::ServiceTemplateDetailDto,
         services::ServiceDto,
@@ -206,6 +227,8 @@ pub struct AppState {
         (name = "applications", description = "Applications, deploys, env vars, logs"),
         (name = "deployments", description = "Deployments"),
         (name = "databases", description = "Standalone databases"),
+        (name = "backups", description = "Scheduled database backups"),
+        (name = "s3-storages", description = "S3-compatible backup storage"),
         (name = "service-templates", description = "One-click service catalog"),
         (name = "services", description = "One-click services"),
         (name = "settings", description = "Instance settings"),
@@ -313,6 +336,34 @@ fn api_router() -> Router<AppState> {
         .route("/api/v1/databases/{uuid}/start", post(databases::start))
         .route("/api/v1/databases/{uuid}/stop", post(databases::stop))
         .route("/api/v1/databases/{uuid}/restart", post(databases::restart))
+        .route(
+            "/api/v1/databases/{uuid}/backups",
+            get(backups::list).post(backups::create),
+        )
+        // backups
+        .route(
+            "/api/v1/backups/{uuid}",
+            get(backups::get)
+                .patch(backups::update)
+                .delete(backups::delete),
+        )
+        .route("/api/v1/backups/{uuid}/trigger", post(backups::trigger))
+        .route(
+            "/api/v1/backups/{uuid}/executions",
+            get(backups::executions),
+        )
+        // s3 storages
+        .route(
+            "/api/v1/s3-storages",
+            get(s3_storages::list).post(s3_storages::create),
+        )
+        .route(
+            "/api/v1/s3-storages/{uuid}",
+            get(s3_storages::get)
+                .patch(s3_storages::update)
+                .delete(s3_storages::delete),
+        )
+        .route("/api/v1/s3-storages/{uuid}/test", post(s3_storages::test))
         // deployments
         .route("/api/v1/deployments", get(deployments::list))
         .route("/api/v1/deployments/{uuid}", get(deployments::get))
