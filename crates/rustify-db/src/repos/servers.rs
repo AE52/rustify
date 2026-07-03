@@ -40,6 +40,12 @@ pub struct ServerSettings {
     /// Whether the interactive web terminal (PTY over SSH) is allowed for this
     /// server (migration 0010; parity with Coolify `isTerminalEnabled`).
     pub is_terminal_enabled: bool,
+    /// Whether periodic metrics collection runs for this server (migration 0011).
+    pub metrics_enabled: bool,
+    /// Target seconds between metrics pulls; also drives staleness (migration 0011).
+    pub metrics_refresh_rate_seconds: i32,
+    /// How many days of samples the retention prune keeps (migration 0011).
+    pub metrics_history_days: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -236,7 +242,9 @@ impl ServerRepo {
         let row = sqlx::query_as::<_, ServerSettings>(
             "SELECT id, server_id, concurrent_builds, deployment_queue_limit, dynamic_timeout,
                     connection_timeout, proxy_type, proxy_status, proxy_custom_config,
-                    is_build_server, is_terminal_enabled, created_at, updated_at
+                    is_build_server, is_terminal_enabled, metrics_enabled,
+                    metrics_refresh_rate_seconds, metrics_history_days,
+                    created_at, updated_at
              FROM server_settings WHERE server_id = $1",
         )
         .bind(server_id)

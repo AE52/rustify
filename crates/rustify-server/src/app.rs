@@ -13,9 +13,9 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, backups, databases, deployments, github_apps, health, keys, notifications,
-    previews, projects, s3_storages, scheduled_tasks, servers, service_templates, services,
-    settings, teams, tokens, webhooks,
+    applications, auth, backups, databases, deployments, github_apps, health, keys, metrics,
+    notifications, previews, projects, s3_storages, scheduled_tasks, servers, service_templates,
+    services, settings, teams, tokens, webhooks,
 };
 use crate::{embed, terminal, ws};
 
@@ -103,6 +103,8 @@ pub struct AppState {
         servers::proxy_start,
         servers::proxy_stop,
         servers::proxy_restart,
+        metrics::server_metrics,
+        metrics::container_metrics,
         projects::list,
         projects::create,
         projects::get,
@@ -287,6 +289,7 @@ pub struct AppState {
         (name = "auth", description = "Authentication"),
         (name = "private-keys", description = "SSH private keys"),
         (name = "servers", description = "Servers and proxy"),
+        (name = "metrics", description = "Server and container metrics time series"),
         (name = "projects", description = "Projects and environments"),
         (name = "applications", description = "Applications, deploys, env vars, logs"),
         (name = "deployments", description = "Deployments"),
@@ -345,6 +348,15 @@ fn api_router() -> Router<AppState> {
         .route(
             "/api/v1/servers/{uuid}/proxy/restart",
             post(servers::proxy_restart),
+        )
+        // metrics (server host + per-container time series)
+        .route(
+            "/api/v1/servers/{uuid}/metrics/{metric}",
+            get(metrics::server_metrics),
+        )
+        .route(
+            "/api/v1/containers/{uuid}/metrics/{metric}",
+            get(metrics::container_metrics),
         )
         // projects
         .route(
