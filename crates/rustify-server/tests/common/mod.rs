@@ -47,11 +47,15 @@ pub fn state(pool: PgPool) -> AppState {
 pub const ADMIN_EMAIL: &str = "admin@test.local";
 pub const ADMIN_PASSWORD: &str = "correct horse battery";
 
-/// Seed a team and admin user; returns `(team_id, user_uuid)`.
+/// Seed a team and admin user (owner of the team); returns `(team_id, user_uuid)`.
 pub async fn seed_user(pool: &PgPool) -> (i64, String) {
     let team = TeamRepo::new(pool.clone()).create("root").await.unwrap();
     let user = UserRepo::new(pool.clone())
         .create(team.id, ADMIN_EMAIL, "Admin", ADMIN_PASSWORD)
+        .await
+        .unwrap();
+    TeamRepo::new(pool.clone())
+        .add_member(team.id, user.id, rustify_core::Role::Owner)
         .await
         .unwrap();
     (team.id, user.uuid)
