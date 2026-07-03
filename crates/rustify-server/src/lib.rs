@@ -11,6 +11,7 @@ pub mod app;
 pub mod auth;
 pub mod embed;
 pub mod error;
+pub mod hetzner;
 pub mod notify;
 pub mod routes;
 pub mod terminal;

@@ -3,6 +3,7 @@
 pub mod applications;
 pub mod auth;
 pub mod backups;
+pub mod cloud;
 pub mod databases;
 pub mod deployments;
 pub mod github_apps;

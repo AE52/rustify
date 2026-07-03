@@ -65,6 +65,12 @@ pub struct ValidateResponse {
     pub job_uuid: String,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CloudflaredEnable {
+    /// The Cloudflare tunnel token to run the agent with.
+    pub tunnel_token: String,
+}
+
 /// Render a server row with its key uuid resolved.
 async fn server_dto(state: &AppState, server: Server) -> ApiResult<ServerDto> {
     let key = KeyRepo::new(state.pool.clone())
@@ -296,6 +302,61 @@ async fn proxy_lifecycle(
         .enqueue(
             &format!("proxy_{action}"),
             json!({ "server_uuid": server.uuid }),
+            None,
+        )
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    Ok((StatusCode::ACCEPTED, Json(json!({ "status": "accepted" }))).into_response())
+}
+
+#[utoipa::path(post, path = "/servers/{uuid}/cloudflared", tag = "servers",
+    params(("uuid" = String, Path, description = "Server uuid")),
+    request_body = CloudflaredEnable,
+    responses((status = 202, description = "Cloudflare tunnel configuration enqueued")))]
+pub async fn cloudflared_enable(
+    State(state): State<AppState>,
+    team: CurrentTeam,
+    _guard: RequireAdmin,
+    Path(uuid): Path<String>,
+    Json(body): Json<CloudflaredEnable>,
+) -> ApiResult<Response> {
+    let server = owned(&state, &team, &uuid).await?;
+    if body.tunnel_token.trim().is_empty() {
+        return Err(ApiError::Validation(
+            "tunnel_token must not be empty".to_string(),
+        ));
+    }
+    state
+        .queue
+        .enqueue(
+            "configure_cloudflared",
+            json!({
+                "server_uuid": server.uuid,
+                "tunnel_token": body.tunnel_token,
+                "action": "configure",
+            }),
+            None,
+        )
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    Ok((StatusCode::ACCEPTED, Json(json!({ "status": "accepted" }))).into_response())
+}
+
+#[utoipa::path(delete, path = "/servers/{uuid}/cloudflared", tag = "servers",
+    params(("uuid" = String, Path, description = "Server uuid")),
+    responses((status = 202, description = "Cloudflare tunnel teardown enqueued")))]
+pub async fn cloudflared_disable(
+    State(state): State<AppState>,
+    team: CurrentTeam,
+    _guard: RequireAdmin,
+    Path(uuid): Path<String>,
+) -> ApiResult<Response> {
+    let server = owned(&state, &team, &uuid).await?;
+    state
+        .queue
+        .enqueue(
+            "configure_cloudflared",
+            json!({ "server_uuid": server.uuid, "action": "disable" }),
             None,
         )
         .await

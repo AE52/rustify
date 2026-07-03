@@ -679,11 +679,17 @@ pub async fn logs(
     let key_path = rustify_ssh::keys::materialize(&key.uuid, &pem, &state.config.ssh_key_dir)
         .map_err(|e| ApiError::Internal(format!("key materialization failed: {e}")))?;
 
-    let connection_timeout_secs = ServerRepo::new(state.pool.clone())
+    let settings = ServerRepo::new(state.pool.clone())
         .settings(ctx.server.id)
-        .await?
+        .await?;
+    let connection_timeout_secs = settings
+        .as_ref()
         .map(|s| s.connection_timeout as u32)
         .unwrap_or(10);
+    let proxy_command = settings
+        .as_ref()
+        .filter(|s| s.is_cloudflare_tunnel)
+        .map(|_| rustify_ssh::command::CLOUDFLARED_SSH_PROXY_COMMAND.to_string());
 
     let conn = ServerConn {
         uuid: ctx.server.uuid.clone(),
@@ -692,6 +698,7 @@ pub async fn logs(
         user: ctx.server.ssh_user.clone(),
         key_path,
         connection_timeout_secs,
+        proxy_command,
     };
 
     let script = format!(

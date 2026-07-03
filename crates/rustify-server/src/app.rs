@@ -13,7 +13,7 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, backups, databases, deployments, github_apps, health, keys, metrics,
+    applications, auth, backups, cloud, databases, deployments, github_apps, health, keys, metrics,
     notifications, previews, projects, s3_storages, scheduled_tasks, servers, service_templates,
     services, settings, teams, tokens, webhooks,
 };
@@ -105,6 +105,15 @@ pub struct AppState {
         servers::proxy_restart,
         metrics::server_metrics,
         metrics::container_metrics,
+        servers::cloudflared_enable,
+        servers::cloudflared_disable,
+        cloud::list_tokens,
+        cloud::create_token,
+        cloud::delete_token,
+        cloud::hetzner_locations,
+        cloud::hetzner_server_types,
+        cloud::hetzner_images,
+        cloud::provision_hetzner,
         projects::list,
         projects::create,
         projects::get,
@@ -220,6 +229,11 @@ pub struct AppState {
         servers::ProxyConfig,
         servers::ProxyConfigUpdate,
         servers::ValidateResponse,
+        servers::CloudflaredEnable,
+        cloud::CloudTokenDto,
+        cloud::CloudTokenCreate,
+        cloud::HetznerProvision,
+        cloud::HetznerProvisionResponse,
         projects::ProjectDto,
         projects::EnvironmentDto,
         projects::ProjectCreate,
@@ -290,6 +304,7 @@ pub struct AppState {
         (name = "private-keys", description = "SSH private keys"),
         (name = "servers", description = "Servers and proxy"),
         (name = "metrics", description = "Server and container metrics time series"),
+        (name = "cloud", description = "Cloud provider tokens and Hetzner provisioning"),
         (name = "projects", description = "Projects and environments"),
         (name = "applications", description = "Applications, deploys, env vars, logs"),
         (name = "deployments", description = "Deployments"),
@@ -357,6 +372,29 @@ fn api_router() -> Router<AppState> {
         .route(
             "/api/v1/containers/{uuid}/metrics/{metric}",
             get(metrics::container_metrics),
+        )
+        .route(
+            "/api/v1/servers/{uuid}/cloudflared",
+            post(servers::cloudflared_enable).delete(servers::cloudflared_disable),
+        )
+        // cloud provider tokens + Hetzner provisioning
+        .route(
+            "/api/v1/cloud-tokens",
+            get(cloud::list_tokens).post(cloud::create_token),
+        )
+        .route(
+            "/api/v1/cloud-tokens/{uuid}",
+            axum::routing::delete(cloud::delete_token),
+        )
+        .route("/api/v1/hetzner/locations", get(cloud::hetzner_locations))
+        .route(
+            "/api/v1/hetzner/server-types",
+            get(cloud::hetzner_server_types),
+        )
+        .route("/api/v1/hetzner/images", get(cloud::hetzner_images))
+        .route(
+            "/api/v1/servers/provision/hetzner",
+            post(cloud::provision_hetzner),
         )
         // projects
         .route(

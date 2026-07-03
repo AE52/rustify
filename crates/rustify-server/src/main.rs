@@ -19,12 +19,13 @@ use rustify_db::pool::MIGRATOR;
 use rustify_db::repos::seed_default;
 use rustify_deploy::admission::DEPLOY_JOB_KIND;
 use rustify_deploy::{
-    DATABASE_BACKUP_KIND, DatabaseBackupHandler, DeployEngineDeps, DeployJobHandler,
-    PREVIEW_CLEANUP_KIND, PreviewCleanupHandler, SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND,
-    SERVICE_STOP_KIND, ScheduledTaskHandler, ServerSetupHandler, ServiceDeployHandler,
-    ServiceStopHandler, StartDatabaseHandler, StopDatabaseHandler, backup_dispatcher_task,
-    daily_cleanup_task, docker_cleanup_task, metrics_collector_task, metrics_retention_task,
-    ssh_mux_cleanup_task, status_sync_task, task_dispatcher_task,
+    CONFIGURE_CLOUDFLARED_KIND, ConfigureCloudflaredHandler, DATABASE_BACKUP_KIND,
+    DatabaseBackupHandler, DeployEngineDeps, DeployJobHandler, PREVIEW_CLEANUP_KIND,
+    PreviewCleanupHandler, SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND,
+    ScheduledTaskHandler, ServerSetupHandler, ServiceDeployHandler, ServiceStopHandler,
+    StartDatabaseHandler, StopDatabaseHandler, backup_dispatcher_task, daily_cleanup_task,
+    docker_cleanup_task, metrics_collector_task, metrics_retention_task, ssh_mux_cleanup_task,
+    status_sync_task, task_dispatcher_task,
 };
 use rustify_jobs::{JobQueue, JobRegistry, Scheduler};
 use rustify_server::app::{AppState, Config};
@@ -40,6 +41,8 @@ const STATUS_SYNC_PERIOD: Duration = Duration::from_secs(30);
 /// Metrics pull cadence; per-server refresh rates larger than this are honoured
 /// inside the sweep (a server is skipped until its own interval elapses).
 const METRICS_PERIOD: Duration = Duration::from_secs(10);
+/// How often Hetzner-provisioned servers' power state is reconciled.
+const HETZNER_SYNC_PERIOD: Duration = Duration::from_secs(60);
 /// How often the scheduled-backup dispatcher checks for due schedules.
 const BACKUP_DISPATCH_PERIOD: Duration = Duration::from_secs(60);
 /// The scheduled-task dispatcher ticks per minute (Coolify `ScheduledJobManager`).
@@ -130,6 +133,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         PREVIEW_CLEANUP_KIND,
         Arc::new(PreviewCleanupHandler::new(deps.clone())),
     );
+    registry.register(
+        CONFIGURE_CLOUDFLARED_KIND,
+        Arc::new(ConfigureCloudflaredHandler::new(deps.clone())),
+    );
     let worker_handle = {
         let queue = queue.clone();
         let shutdown = shutdown.clone();
@@ -175,6 +182,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         DAILY,
         "metrics_retention",
         metrics_retention_task(deps.clone()),
+    );
+    // Hetzner power-state reconciliation for provisioned servers.
+    scheduler.every(
+        HETZNER_SYNC_PERIOD,
+        "hetzner_status_sync",
+        rustify_server::hetzner::hetzner_status_sync_task(deps.pool.clone()),
     );
     scheduler.every(STATUS_SYNC_PERIOD, "status_sync", status_sync_task(deps));
 
