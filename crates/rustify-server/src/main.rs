@@ -19,13 +19,15 @@ use rustify_db::pool::MIGRATOR;
 use rustify_db::repos::seed_default;
 use rustify_deploy::admission::DEPLOY_JOB_KIND;
 use rustify_deploy::{
-    CONFIGURE_CLOUDFLARED_KIND, ConfigureCloudflaredHandler, DATABASE_BACKUP_KIND,
-    DatabaseBackupHandler, DeployEngineDeps, DeployJobHandler, PREVIEW_CLEANUP_KIND,
-    PreviewCleanupHandler, SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND,
+    APP_RESTART_KIND, APP_STOP_KIND, CONFIGURE_CLOUDFLARED_KIND, ConfigureCloudflaredHandler,
+    DATABASE_BACKUP_KIND, DatabaseBackupHandler, DeployEngineDeps, DeployJobHandler,
+    PREVIEW_CLEANUP_KIND, PROXY_RESTART_KIND, PROXY_START_KIND, PROXY_STOP_KIND,
+    PreviewCleanupHandler, ProxyRestartHandler, ProxyStartHandler, ProxyStopHandler,
+    RestartApplicationHandler, SCHEDULED_TASK_KIND, SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND,
     ScheduledTaskHandler, ServerSetupHandler, ServiceDeployHandler, ServiceStopHandler,
-    StartDatabaseHandler, StopDatabaseHandler, backup_dispatcher_task, daily_cleanup_task,
-    docker_cleanup_task, metrics_collector_task, metrics_retention_task, ssh_mux_cleanup_task,
-    status_sync_task, task_dispatcher_task,
+    StartDatabaseHandler, StopApplicationHandler, StopDatabaseHandler, backup_dispatcher_task,
+    daily_cleanup_task, docker_cleanup_task, metrics_collector_task, metrics_retention_task,
+    ssh_mux_cleanup_task, status_sync_task, task_dispatcher_task,
 };
 use rustify_jobs::{JobQueue, JobRegistry, Scheduler};
 use rustify_server::app::{AppState, Config};
@@ -136,6 +138,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     registry.register(
         CONFIGURE_CLOUDFLARED_KIND,
         Arc::new(ConfigureCloudflaredHandler::new(deps.clone())),
+    );
+    registry.register(
+        APP_STOP_KIND,
+        Arc::new(StopApplicationHandler::new(deps.clone())),
+    );
+    registry.register(
+        APP_RESTART_KIND,
+        Arc::new(RestartApplicationHandler::new(deps.clone())),
+    );
+    registry.register(
+        PROXY_START_KIND,
+        Arc::new(ProxyStartHandler::new(deps.clone())),
+    );
+    registry.register(
+        PROXY_STOP_KIND,
+        Arc::new(ProxyStopHandler::new(deps.clone())),
+    );
+    registry.register(
+        PROXY_RESTART_KIND,
+        Arc::new(ProxyRestartHandler::new(deps.clone())),
     );
     let worker_handle = {
         let queue = queue.clone();

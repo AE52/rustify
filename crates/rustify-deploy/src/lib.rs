@@ -27,6 +27,7 @@ use sqlx::PgPool;
 use tokio::sync::broadcast;
 
 pub mod admission;
+pub mod app_lifecycle;
 pub mod backup;
 pub mod build_server;
 pub mod buildpacks;
@@ -40,6 +41,7 @@ pub mod metrics;
 pub mod pr_comment;
 pub mod preview;
 pub mod preview_cleanup;
+pub mod proxy;
 pub mod rolling;
 pub mod scheduled_task;
 pub mod server_setup;
@@ -47,6 +49,10 @@ pub mod service;
 pub mod status_sync;
 pub mod system_cron;
 
+pub use app_lifecycle::{
+    APP_RESTART_KIND, APP_STOP_KIND, RestartApplicationHandler, StopApplicationHandler,
+    restart_application, stop_application,
+};
 pub use backup::{
     DATABASE_BACKUP_KIND, DatabaseBackupHandler, backup_dispatcher_task, cron_is_due,
     dispatch_due_backups, run_backup,
@@ -63,6 +69,10 @@ pub use database::{StartDatabaseHandler, StopDatabaseHandler, start_database, st
 pub use engine::{DeployJobHandler, run_deployment};
 pub use metrics::{metrics_collector_task, metrics_retention_task};
 pub use preview_cleanup::{PREVIEW_CLEANUP_KIND, PreviewCleanupHandler, cleanup_preview};
+pub use proxy::{
+    PROXY_RESTART_KIND, PROXY_START_KIND, PROXY_STOP_KIND, ProxyRestartHandler, ProxyStartHandler,
+    ProxyStopHandler, restart_proxy, start_proxy, stop_proxy,
+};
 pub use scheduled_task::{
     SCHEDULED_TASK_KIND, ScheduledTaskHandler, dispatch_due_tasks, run_scheduled_task,
     task_dispatcher_task,

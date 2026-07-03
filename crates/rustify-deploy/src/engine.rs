@@ -990,9 +990,21 @@ impl Engine {
 
     // ---- step 8 helpers (called by rolling) ---------------------------------
 
-    pub(crate) async fn compose_up(&mut self) -> Result<(), DeployError> {
+    /// Bring the app's compose stack up. `remove_orphans` must be `false` on the
+    /// rolling (Eligible) path: the previous deploy's still-running container is
+    /// a distinct, uniquely-named service in the same compose project, so
+    /// `--remove-orphans` would delete it *during* `up` — before the health gate
+    /// — causing downtime on every redeploy and a total outage when the new
+    /// container's healthcheck fails. Only the stop-then-start (Disqualified)
+    /// path, which has already removed the old container, passes `true`.
+    pub(crate) async fn compose_up(&mut self, remove_orphans: bool) -> Result<(), DeployError> {
+        let orphans = if remove_orphans {
+            " --remove-orphans"
+        } else {
+            ""
+        };
         let script = format!(
-            "cd {dir} && docker compose -f docker-compose.yml up -d --remove-orphans",
+            "cd {dir} && docker compose -f docker-compose.yml up -d{orphans}",
             dir = self.app_config_dir
         );
         self.exec_step(&script, false, false).await?;

@@ -368,6 +368,20 @@ impl ServerRepo {
         Ok(())
     }
 
+    /// Persist the proxy's runtime status (`running` / `exited` / ...), set by
+    /// the proxy start/stop/restart lifecycle handlers.
+    pub async fn set_proxy_status(&self, server_id: i64, status: &str) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE server_settings SET proxy_status = $2, updated_at = now()
+             WHERE server_id = $1",
+        )
+        .bind(server_id)
+        .bind(status)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
     /// Partial update of a server's operational settings (proxy type, build /
     /// terminal / metrics flags). `None` args leave the column unchanged. Returns
     /// the refreshed settings, or `None` when the server has no settings row.
