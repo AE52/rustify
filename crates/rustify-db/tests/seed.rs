@@ -29,7 +29,22 @@ async fn seed_creates_team_and_hashed_admin_and_is_idempotent(pool: PgPool) {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(teams, 1, "exactly one default team");
+    assert_eq!(teams, 1, "exactly one team (the root team)");
+
+    // The seeded team is the instance-wide root team (id 0).
+    let root: i64 = sqlx::query_scalar("SELECT id FROM teams ORDER BY id LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(root, 0, "root team has id 0");
+
+    // The admin owns the root team via the membership pivot (idempotently).
+    let (pivot_team, role): (i64, String) = sqlx::query_as("SELECT team_id, role FROM team_user")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(pivot_team, 0);
+    assert_eq!(role, "owner");
 
     let (email, name, hash): (String, String, String) =
         sqlx::query_as("SELECT email, name, password_hash FROM users")

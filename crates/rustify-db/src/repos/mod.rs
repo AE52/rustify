@@ -38,7 +38,9 @@ pub use scheduled_tasks::{
 pub use servers::{Destination, NewServer, Server, ServerRepo, ServerSettings};
 pub use services::{NewService, Service, ServiceApplication, ServiceRepo};
 pub use settings::{ApiToken, InstanceSettings, Session, SettingsRepo};
-pub use teams::{Team, TeamRepo};
+pub use teams::{
+    INVITATION_EXPIRATION_DAYS, ROOT_TEAM_ID, Team, TeamInvitation, TeamMember, TeamRepo,
+};
 pub use users::{User, UserRepo};
 
 use sqlx::PgPool;
@@ -58,37 +60,53 @@ pub async fn seed_default(pool: &PgPool) -> DbResult<()> {
 
     let mut tx = pool.begin().await?;
 
-    // Reuse the lowest-id team as "team #1", or create it.
-    let team_id: i64 = match sqlx::query_scalar("SELECT id FROM teams ORDER BY id LIMIT 1")
+    // Ensure the instance-wide root team (`id = 0`) exists. Its owner is the
+    // instance admin (multi-tenancy §5). Explicit id keeps it stable and does
+    // not advance the BIGSERIAL sequence used by user-created teams.
+    sqlx::query(
+        "INSERT INTO teams (id, uuid, name, personal_team) VALUES (0, $1, 'root', false)
+         ON CONFLICT (id) DO NOTHING",
+    )
+    .bind(ids::new_uuid())
+    .execute(&mut *tx)
+    .await?;
+
+    // Home team for the seeded admin: the lowest-id team (the root team on a
+    // fresh install).
+    let team_id: i64 = sqlx::query_scalar("SELECT id FROM teams ORDER BY id LIMIT 1")
+        .fetch_one(&mut *tx)
+        .await?;
+
+    let admin_id: i64 = match sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
+        .bind(&email)
         .fetch_optional(&mut *tx)
         .await?
     {
         Some(id) => id,
         None => {
-            sqlx::query_scalar("INSERT INTO teams (uuid, name) VALUES ($1, 'root') RETURNING id")
-                .bind(ids::new_uuid())
-                .fetch_one(&mut *tx)
-                .await?
+            let password_hash = users::hash_password(&password)?;
+            sqlx::query_scalar(
+                "INSERT INTO users (uuid, team_id, email, name, password_hash)
+                 VALUES ($1, $2, $3, 'Admin', $4) RETURNING id",
+            )
+            .bind(ids::new_uuid())
+            .bind(team_id)
+            .bind(&email)
+            .bind(&password_hash)
+            .fetch_one(&mut *tx)
+            .await?
         }
     };
 
-    let admin_exists: Option<i64> = sqlx::query_scalar("SELECT id FROM users WHERE email = $1")
-        .bind(&email)
-        .fetch_optional(&mut *tx)
-        .await?;
-    if admin_exists.is_none() {
-        let password_hash = users::hash_password(&password)?;
-        sqlx::query(
-            "INSERT INTO users (uuid, team_id, email, name, password_hash)
-             VALUES ($1, $2, $3, 'Admin', $4)",
-        )
-        .bind(ids::new_uuid())
-        .bind(team_id)
-        .bind(&email)
-        .bind(&password_hash)
-        .execute(&mut *tx)
-        .await?;
-    }
+    // Instance admin owns its home team via the membership pivot.
+    sqlx::query(
+        "INSERT INTO team_user (team_id, user_id, role) VALUES ($1, $2, 'owner')
+         ON CONFLICT (team_id, user_id) DO NOTHING",
+    )
+    .bind(team_id)
+    .bind(admin_id)
+    .execute(&mut *tx)
+    .await?;
 
     // Auto-provision the team's notification settings row with the sane-default
     // event matrix (critical failures opt in on every channel). Idempotent: the
