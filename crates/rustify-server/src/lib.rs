@@ -13,6 +13,7 @@ pub mod embed;
 pub mod error;
 pub mod notify;
 pub mod routes;
+pub mod terminal;
 pub mod ws;
 
 pub use app::{ApiDoc, AppState, Config, build_router};
