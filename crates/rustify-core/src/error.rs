@@ -12,4 +12,6 @@ pub enum CoreError {
     Encrypt,
     #[error("decryption failed: blob is invalid or has been tampered with")]
     Decrypt,
+    #[error("github app jwt error: {0}")]
+    Jwt(String),
 }
