@@ -54,8 +54,8 @@ e2e-seed:
 	@for app in $(E2E_APPS); do \
 	  echo "seeding $$app"; \
 	  ssh $(SSH_OPTS) root@$(E2E_SSH_HOST) "rm -rf /tmp/$$app /srv/git/$$app.git && mkdir -p /tmp/$$app"; \
-	  tar -C $(E2E_DIR)/apps/$$app -cf - . | ssh $(SSH_OPTS) root@$(E2E_SSH_HOST) "tar -C /tmp/$$app -xf -"; \
-	  ssh $(SSH_OPTS) root@$(E2E_SSH_HOST) "cd /tmp/$$app && git init -q -b master && git config user.email e2e@rustify.test && git config user.name e2e && git add -A && git commit -qm init && git clone --bare -q /tmp/$$app /srv/git/$$app.git"; \
+	  COPYFILE_DISABLE=1 tar -C $(E2E_DIR)/apps/$$app -cf - . | ssh $(SSH_OPTS) root@$(E2E_SSH_HOST) "tar -C /tmp/$$app -xf -"; \
+	  ssh $(SSH_OPTS) root@$(E2E_SSH_HOST) "chown -R root:root /tmp/$$app && cd /tmp/$$app && git init -q -b master && git config user.email e2e@rustify.test && git config user.name e2e && git add -A && git commit -qm init && git clone --bare -q /tmp/$$app /srv/git/$$app.git"; \
 	done
 
 e2e-run:

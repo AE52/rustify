@@ -288,7 +288,7 @@ async fn await_terminal(client: &reqwest::Client, dep_uuid: &str, timeout: Durat
         timeout,
         |d| {
             matches!(
-                d["deployment"]["status"].as_str(),
+                d["status"].as_str(),
                 Some("finished") | Some("failed") | Some("cancelled")
             )
         },
@@ -297,7 +297,10 @@ async fn await_terminal(client: &reqwest::Client, dep_uuid: &str, timeout: Durat
 }
 
 fn status_of(detail: &Value) -> &str {
-    detail["deployment"]["status"].as_str().unwrap_or("")
+    // The server flattens the deployment fields into the top-level object
+    // (`DeploymentDetailDto` uses `#[serde(flatten)]`), so `status` and `logs`
+    // are siblings — the same shape the web SPA consumes.
+    detail["status"].as_str().unwrap_or("")
 }
 
 fn logs_of(detail: &Value) -> &Vec<Value> {
@@ -386,11 +389,17 @@ async fn e2e_full_flow() {
         "third deploy cancelled: {cancelled}"
     );
 
-    // Helper container is named after the deployment uuid (contract C7).
-    let helper = ssh(&format!(
-        "docker ps -a --filter name=^/{dep3}$ --format '{{{{.ID}}}}'"
-    ))
-    .await;
+    // Helper container is named after the deployment uuid (contract C7). The
+    // cancel API flips the status immediately, but the engine tears the helper
+    // down asynchronously once it observes the cancel, so poll (bounded) for
+    // the removal rather than assuming it is already gone.
+    let ps = format!("docker ps -a --filter name=^/{dep3}$ --format '{{{{.ID}}}}'");
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let mut helper = ssh(&ps).await;
+    while !helper.trim().is_empty() && Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        helper = ssh(&ps).await;
+    }
     assert!(
         helper.trim().is_empty(),
         "helper container {dep3} should be removed, got: {helper:?}"

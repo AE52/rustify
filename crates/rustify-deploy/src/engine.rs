@@ -267,7 +267,7 @@ impl Engine {
                 let image = format!("{}:{}", self.application.uuid, sha);
                 // Step 4: skip build if the image already exists.
                 if self.skip_build(&image).await? {
-                    self.info("Image already built for this commit; skipping build.")
+                    self.info("Image already exists for this commit; skipping build.")
                         .await;
                 } else {
                     self.clone_repo(&sha).await?; // step 5
@@ -286,9 +286,15 @@ impl Engine {
         self.next_batch();
         self.info(&format!("Preparing build helper ({HELPER_IMAGE})."))
             .await;
+        // A `file://` repository lives on the server's filesystem, not inside
+        // the helper. Bind-mount its path read-only at the same location so the
+        // helper's `git ls-remote`/`git clone` can reach it.
+        let repo_mount = file_repo_mount(&self.application.git_repository)
+            .map(|m| format!(" {m}"))
+            .unwrap_or_default();
         let run = format!(
             "docker run -d --rm --name {dep} --network {net} \
-             -v /var/run/docker.sock:/var/run/docker.sock {image}",
+             -v /var/run/docker.sock:/var/run/docker.sock{repo_mount} {image}",
             dep = self.deployment.uuid,
             net = self.network,
             image = HELPER_IMAGE
@@ -789,10 +795,19 @@ impl Engine {
         let exec_fut = async move { executor.exec_streaming(&conn, &owned, opts, tx).await };
         tokio::pin!(exec_fut);
 
+        // Poll for cancellation every 500ms *while the command runs* so a
+        // long-running step (e.g. a build) is aborted promptly instead of only
+        // between steps. `biased` polls this first so heavy output never starves
+        // the cancel check; on cancel we drop `exec_fut` (abandoning the local
+        // command) and return — the caller's `cleanup` force-removes the helper,
+        // which stops any remote work.
+        let mut cancel_poll = tokio::time::interval(std::time::Duration::from_millis(500));
+        cancel_poll.tick().await; // consume the immediate first tick
         let mut result: Option<Result<ExecOutput, rustify_core::ExecError>> = None;
         loop {
             tokio::select! {
                 biased;
+                _ = cancel_poll.tick(), if result.is_none() => { self.check_cancel().await?; }
                 evt = rx.recv() => match evt {
                     Some(ExecEvent::Stdout(line)) => self.emit("stdout", &line, hidden).await,
                     Some(ExecEvent::Stderr(line)) => self.emit("stderr", &line, hidden).await,
@@ -802,7 +817,18 @@ impl Engine {
             }
         }
 
-        let output = result.expect("exec future resolved before channel closed")?;
+        // The loop only breaks once `result` is `Some` (the exec future has
+        // resolved). Guard the invariant with a graceful error instead of a
+        // panic: a panic here would unwind past the caller's helper-cleanup
+        // step, leaking the build container.
+        let output = match result {
+            Some(r) => r?,
+            None => {
+                return Err(DeployError::Exec(rustify_core::ExecError::Io(
+                    "exec stream closed before the command resolved".into(),
+                )));
+            }
+        };
         if !allow_failure && output.exit_code != 0 {
             return Err(DeployError::Build(format!(
                 "command exited {}: {}",
@@ -954,6 +980,19 @@ pub(crate) async fn build_conn(
     }
 }
 
+/// Bind-mount argument that makes a `file://` git repository readable inside
+/// the build helper. Returns `None` for remote URLs (https/git@), which the
+/// helper reaches over the network. The repo path is mounted read-only at the
+/// same absolute path so the unchanged `file://<path>` URL resolves.
+fn file_repo_mount(git_repository: &str) -> Option<String> {
+    let path = git_repository.strip_prefix("file://")?;
+    // Only mount a sane absolute path; never inject shell metacharacters.
+    if !path.starts_with('/') || path.contains(['"', '\'', ' ', ';', '&', '|', '$', '`', '\n']) {
+        return None;
+    }
+    Some(format!("-v {path}:{path}:ro"))
+}
+
 fn materialise_key(dir: &std::path::Path, path: &std::path::Path, material: &str) {
     if std::fs::create_dir_all(dir).is_err() {
         return;
@@ -965,5 +1004,31 @@ fn materialise_key(dir: &std::path::Path, path: &std::path::Path, material: &str
     {
         use std::os::unix::fs::PermissionsExt;
         let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::file_repo_mount;
+
+    #[test]
+    fn mounts_file_repo_read_only_at_same_path() {
+        assert_eq!(
+            file_repo_mount("file:///srv/git/app.git").as_deref(),
+            Some("-v /srv/git/app.git:/srv/git/app.git:ro")
+        );
+    }
+
+    #[test]
+    fn no_mount_for_remote_urls() {
+        assert_eq!(file_repo_mount("https://github.com/x/y.git"), None);
+        assert_eq!(file_repo_mount("git@github.com:x/y.git"), None);
+    }
+
+    #[test]
+    fn rejects_unsafe_or_relative_file_paths() {
+        assert_eq!(file_repo_mount("file://relative/x.git"), None);
+        assert_eq!(file_repo_mount("file:///srv/git/$(rm -rf).git"), None);
+        assert_eq!(file_repo_mount("file:///srv/a b.git"), None);
     }
 }

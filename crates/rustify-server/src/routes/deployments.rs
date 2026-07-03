@@ -135,7 +135,7 @@ fn to_dto(r: Resolved) -> DeploymentDto {
     }
 }
 
-#[utoipa::path(get, path = "/deployments", tag = "deployments",
+#[utoipa::path(get, path = "/deployments", operation_id = "list_deployments", tag = "deployments",
     params(("application_uuid" = String, Query, description = "Filter by application uuid")),
     responses(
         (status = 200, description = "Deployments for the application", body = [DeploymentDto]),
@@ -167,7 +167,7 @@ pub async fn list(
     Ok(Json(out))
 }
 
-#[utoipa::path(get, path = "/deployments/{uuid}", tag = "deployments",
+#[utoipa::path(get, path = "/deployments/{uuid}", operation_id = "get_deployment", tag = "deployments",
     params(("uuid" = String, Path, description = "Deployment uuid")),
     responses(
         (status = 200, description = "Deployment with logs", body = DeploymentDetailDto),

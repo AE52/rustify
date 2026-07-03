@@ -83,7 +83,7 @@ async fn owned(state: &AppState, team: &CurrentTeam, uuid: &str) -> ApiResult<Pr
     Ok(project)
 }
 
-#[utoipa::path(get, path = "/projects", tag = "projects",
+#[utoipa::path(get, path = "/projects", operation_id = "list_projects", tag = "projects",
     responses((status = 200, description = "List of projects", body = [ProjectDto])))]
 pub async fn list(
     State(state): State<AppState>,
@@ -97,7 +97,7 @@ pub async fn list(
     Ok(Json(out))
 }
 
-#[utoipa::path(post, path = "/projects", tag = "projects", request_body = ProjectCreate,
+#[utoipa::path(post, path = "/projects", operation_id = "create_project", tag = "projects", request_body = ProjectCreate,
     responses((status = 201, description = "Project created", body = ProjectDto)))]
 pub async fn create(
     State(state): State<AppState>,
@@ -114,7 +114,7 @@ pub async fn create(
         .into_response())
 }
 
-#[utoipa::path(get, path = "/projects/{uuid}", tag = "projects",
+#[utoipa::path(get, path = "/projects/{uuid}", operation_id = "get_project", tag = "projects",
     params(("uuid" = String, Path, description = "Project uuid")),
     responses(
         (status = 200, description = "The project", body = ProjectDto),
@@ -129,7 +129,7 @@ pub async fn get(
     Ok(Json(project_dto(&state, project).await?))
 }
 
-#[utoipa::path(patch, path = "/projects/{uuid}", tag = "projects",
+#[utoipa::path(patch, path = "/projects/{uuid}", operation_id = "update_project", tag = "projects",
     params(("uuid" = String, Path, description = "Project uuid")),
     request_body = ProjectUpdate,
     responses(
@@ -150,7 +150,7 @@ pub async fn update(
     Ok(Json(project_dto(&state, project).await?))
 }
 
-#[utoipa::path(delete, path = "/projects/{uuid}", tag = "projects",
+#[utoipa::path(delete, path = "/projects/{uuid}", operation_id = "delete_project", tag = "projects",
     params(("uuid" = String, Path, description = "Project uuid")),
     responses(
         (status = 204, description = "Deleted"),

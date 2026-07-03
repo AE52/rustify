@@ -2,22 +2,25 @@ import type { components } from './types.gen'
 
 export type Schemas = components['schemas']
 
-export type User = Schemas['User']
-export type PrivateKey = Schemas['PrivateKey']
-export type Server = Schemas['Server']
+// The server (utoipa) names response schemas after their Rust DTO types
+// (`*Dto`) and inlines the `build_pack`/`status` enums, so the friendly aliases
+// the app uses are mapped onto the generated names here.
+export type User = Schemas['UserDto']
+export type PrivateKey = Schemas['PrivateKeyDto']
+export type Server = Schemas['ServerDto']
 export type ProxyConfig = Schemas['ProxyConfig']
-export type Project = Schemas['Project']
-export type Environment = Schemas['Environment']
-export type Application = Schemas['Application']
+export type Project = Schemas['ProjectDto']
+export type Environment = Schemas['EnvironmentDto']
+export type Application = Schemas['ApplicationDto']
 export type ApplicationCreate = Schemas['ApplicationCreate']
-export type BuildPack = Schemas['BuildPack']
-export type EnvVar = Schemas['EnvVar']
-export type Deployment = Schemas['Deployment']
-export type DeploymentDetail = Schemas['DeploymentDetail']
-export type DeploymentStatus = Schemas['DeploymentStatus']
-export type LogLine = Schemas['LogLine']
-export type InstanceSettings = Schemas['InstanceSettings']
-export type ApiToken = Schemas['ApiToken']
+export type BuildPack = 'nixpacks' | 'dockerfile' | 'static' | 'docker_image' | 'docker_compose'
+export type EnvVar = Schemas['EnvVarDto']
+export type Deployment = Schemas['DeploymentDto']
+export type DeploymentDetail = Schemas['DeploymentDetailDto']
+export type DeploymentStatus = 'queued' | 'in_progress' | 'finished' | 'failed' | 'cancelled'
+export type LogLine = Schemas['LogLineDto']
+export type InstanceSettings = Schemas['InstanceSettingsDto']
+export type ApiToken = Schemas['ApiTokenDto']
 export type ApiTokenCreated = Schemas['ApiTokenCreated']
 
 const BASE = '/api/v1'

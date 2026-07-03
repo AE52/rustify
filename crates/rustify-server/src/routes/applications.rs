@@ -292,13 +292,15 @@ fn to_dto(ctx: AppContext) -> ApplicationDto {
     }
 }
 
-/// Reject a git URL that is not an `https://` or `git@` remote (contract C5).
+/// Reject a git URL that is not an `https://`, `git@`, or `file://` remote
+/// (contract C5). `file://` supports local bare repositories (used by the e2e
+/// harness, which deploys from bare repos seeded onto the target host).
 fn validate_git(url: &str) -> ApiResult<()> {
-    if url.starts_with("https://") || url.starts_with("git@") {
+    if url.starts_with("https://") || url.starts_with("git@") || url.starts_with("file://") {
         Ok(())
     } else {
         Err(ApiError::Validation(
-            "git_repository must start with https:// or git@".into(),
+            "git_repository must start with https://, git@, or file://".into(),
         ))
     }
 }
@@ -316,7 +318,7 @@ fn validate_build_pack(bp: &str) -> ApiResult<()> {
 
 // ----- CRUD ---------------------------------------------------------------
 
-#[utoipa::path(get, path = "/applications", tag = "applications",
+#[utoipa::path(get, path = "/applications", operation_id = "list_applications", tag = "applications",
     responses((status = 200, description = "List of applications", body = [ApplicationDto])))]
 pub async fn list(
     State(state): State<AppState>,
@@ -338,7 +340,7 @@ pub async fn list(
     Ok(Json(out))
 }
 
-#[utoipa::path(post, path = "/applications", tag = "applications", request_body = ApplicationCreate,
+#[utoipa::path(post, path = "/applications", operation_id = "create_application", tag = "applications", request_body = ApplicationCreate,
     responses(
         (status = 201, description = "Application created", body = ApplicationDto),
         (status = 422, description = "Validation error", body = crate::error::ApiErrorBody),
@@ -420,7 +422,7 @@ fn has_patch(p: &ApplicationPatch) -> bool {
         || p.start_command.is_some()
 }
 
-#[utoipa::path(get, path = "/applications/{uuid}", tag = "applications",
+#[utoipa::path(get, path = "/applications/{uuid}", operation_id = "get_application", tag = "applications",
     params(("uuid" = String, Path, description = "Application uuid")),
     responses(
         (status = 200, description = "The application", body = ApplicationDto),
@@ -435,7 +437,7 @@ pub async fn get(
     Ok(Json(to_dto(ctx)))
 }
 
-#[utoipa::path(patch, path = "/applications/{uuid}", tag = "applications",
+#[utoipa::path(patch, path = "/applications/{uuid}", operation_id = "update_application", tag = "applications",
     params(("uuid" = String, Path, description = "Application uuid")),
     request_body = ApplicationUpdate,
     responses(
@@ -487,7 +489,7 @@ pub async fn update(
     Ok(Json(to_dto(ctx)))
 }
 
-#[utoipa::path(delete, path = "/applications/{uuid}", tag = "applications",
+#[utoipa::path(delete, path = "/applications/{uuid}", operation_id = "delete_application", tag = "applications",
     params(("uuid" = String, Path, description = "Application uuid")),
     responses(
         (status = 204, description = "Deleted"),
@@ -774,5 +776,24 @@ pub async fn delete_env(
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(ApiError::NotFound)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_git;
+
+    #[test]
+    fn accepts_supported_git_schemes() {
+        assert!(validate_git("https://github.com/x/y.git").is_ok());
+        assert!(validate_git("git@github.com:x/y.git").is_ok());
+        assert!(validate_git("file:///srv/git/nixpacks-node.git").is_ok());
+    }
+
+    #[test]
+    fn rejects_unsupported_git_schemes() {
+        assert!(validate_git("http://insecure/x.git").is_err());
+        assert!(validate_git("ssh://host/x.git").is_err());
+        assert!(validate_git("/local/path").is_err());
     }
 }

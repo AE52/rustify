@@ -36,7 +36,7 @@ pub struct ApiTokenCreated {
     pub token: String,
 }
 
-#[utoipa::path(get, path = "/api-tokens", tag = "api-tokens",
+#[utoipa::path(get, path = "/api-tokens", operation_id = "list_tokens", tag = "api-tokens",
     responses((status = 200, description = "List of API tokens", body = [ApiTokenDto])))]
 pub async fn list(
     State(state): State<AppState>,
@@ -59,7 +59,7 @@ pub async fn list(
     ))
 }
 
-#[utoipa::path(post, path = "/api-tokens", tag = "api-tokens",
+#[utoipa::path(post, path = "/api-tokens", operation_id = "create_token", tag = "api-tokens",
     request_body = ApiTokenCreate,
     responses((status = 201, description = "Token created (shown once)", body = ApiTokenCreated)))]
 pub async fn create(
@@ -83,7 +83,7 @@ pub async fn create(
         .into_response())
 }
 
-#[utoipa::path(delete, path = "/api-tokens/{uuid}", tag = "api-tokens",
+#[utoipa::path(delete, path = "/api-tokens/{uuid}", operation_id = "delete_token", tag = "api-tokens",
     params(("uuid" = String, Path, description = "API token uuid")),
     responses(
         (status = 204, description = "Deleted"),

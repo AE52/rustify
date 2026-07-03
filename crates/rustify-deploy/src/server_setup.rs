@@ -181,7 +181,17 @@ impl SetupCtx<'_> {
                 r = &mut fut, if result.is_none() => { result = Some(r); }
             }
         }
-        let out = result.expect("exec future resolved before channel closed")?;
+        // The loop only breaks once `result` is `Some`; surface the broken
+        // invariant as an error rather than panicking (a panic would unwind
+        // past validation bookkeeping).
+        let out = match result {
+            Some(r) => r?,
+            None => {
+                return Err(DeployError::Exec(rustify_core::ExecError::Io(
+                    "exec stream closed before the command resolved".into(),
+                )));
+            }
+        };
         if !allow_failure && out.exit_code != 0 {
             return Err(DeployError::Build(format!(
                 "server setup command exited {}: {}",

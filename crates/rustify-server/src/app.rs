@@ -30,10 +30,18 @@ pub struct Config {
 
 impl Config {
     /// Build configuration from environment variables, applying defaults.
+    ///
+    /// The data dir holds SSH mux sockets and materialised keys. It defaults to
+    /// `$RUSTIFY_DATA_DIR`, else `$HOME/.rustify` (writable on dev machines),
+    /// else a temp dir. The release image sets `RUSTIFY_DATA_DIR=/data/rustify`.
     pub fn from_env() -> Self {
-        let base = PathBuf::from(
-            std::env::var("RUSTIFY_DATA_DIR").unwrap_or_else(|_| "/data/rustify".to_string()),
-        );
+        let base = std::env::var("RUSTIFY_DATA_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                std::env::var("HOME")
+                    .map(|h| PathBuf::from(h).join(".rustify"))
+                    .unwrap_or_else(|_| std::env::temp_dir().join("rustify"))
+            });
         Self {
             cookie_secure: std::env::var("RUSTIFY_COOKIE_SECURE")
                 .map(|v| v != "false" && v != "0")

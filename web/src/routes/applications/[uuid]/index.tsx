@@ -126,7 +126,7 @@ export default function ApplicationGeneral() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [name, setName] = useState(app.name)
-  const [buildPack, setBuildPack] = useState<BuildPack>(app.build_pack)
+  const [buildPack, setBuildPack] = useState<BuildPack>(app.build_pack as BuildPack)
   const [portsExposes, setPortsExposes] = useState(app.ports_exposes)
   const [portsMappings, setPortsMappings] = useState(app.ports_mappings ?? '')
   const [limitsMemory, setLimitsMemory] = useState(app.limits_memory ?? '0')

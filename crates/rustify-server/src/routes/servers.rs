@@ -107,7 +107,7 @@ async fn key_id_for(state: &AppState, team: &CurrentTeam, key_uuid: &str) -> Api
     Ok(key.id)
 }
 
-#[utoipa::path(get, path = "/servers", tag = "servers",
+#[utoipa::path(get, path = "/servers", operation_id = "list_servers", tag = "servers",
     responses((status = 200, description = "List of servers", body = [ServerDto])))]
 pub async fn list(
     State(state): State<AppState>,
@@ -121,7 +121,7 @@ pub async fn list(
     Ok(Json(out))
 }
 
-#[utoipa::path(post, path = "/servers", tag = "servers", request_body = ServerCreate,
+#[utoipa::path(post, path = "/servers", operation_id = "create_server", tag = "servers", request_body = ServerCreate,
     responses(
         (status = 201, description = "Server created", body = ServerDto),
         (status = 422, description = "Validation error", body = crate::error::ApiErrorBody),
@@ -145,7 +145,7 @@ pub async fn create(
     Ok((StatusCode::CREATED, Json(server_dto(&state, server).await?)).into_response())
 }
 
-#[utoipa::path(get, path = "/servers/{uuid}", tag = "servers",
+#[utoipa::path(get, path = "/servers/{uuid}", operation_id = "get_server", tag = "servers",
     params(("uuid" = String, Path, description = "Server uuid")),
     responses(
         (status = 200, description = "The server", body = ServerDto),
@@ -160,7 +160,7 @@ pub async fn get(
     Ok(Json(server_dto(&state, server).await?))
 }
 
-#[utoipa::path(patch, path = "/servers/{uuid}", tag = "servers",
+#[utoipa::path(patch, path = "/servers/{uuid}", operation_id = "update_server", tag = "servers",
     params(("uuid" = String, Path, description = "Server uuid")),
     request_body = ServerUpdate,
     responses(
@@ -192,7 +192,7 @@ pub async fn update(
     Ok(Json(server_dto(&state, server).await?))
 }
 
-#[utoipa::path(delete, path = "/servers/{uuid}", tag = "servers",
+#[utoipa::path(delete, path = "/servers/{uuid}", operation_id = "delete_server", tag = "servers",
     params(("uuid" = String, Path, description = "Server uuid")),
     responses(
         (status = 204, description = "Deleted"),
