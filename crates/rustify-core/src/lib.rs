@@ -22,6 +22,7 @@ pub mod passwords;
 pub mod railpack;
 pub mod redact;
 pub mod retention;
+pub mod role;
 pub mod service_vars;
 pub mod webhook;
 
@@ -35,3 +36,4 @@ pub use notify::{Channel, NotifEvent, default_event_matrix, should_send};
 pub use passwords::gen_password;
 pub use redact::redact;
 pub use retention::{ExecMeta, select_for_deletion};
+pub use role::Role;
