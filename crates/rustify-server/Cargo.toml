@@ -42,7 +42,10 @@ async-trait = { workspace = true }
 ssh-key = { version = "0.6", features = ["ed25519"] }
 futures-util = "0.3"
 # GitHub REST calls for repository/branch listing and the app-manifest web flow.
+# Also notification delivery: outbound HTTP for webhook-style channels (Discord,
+# Telegram, Slack, Pushover, generic webhook, Resend) and SMTP email.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1-rustls-tls"] }
 
 [features]
 # End-to-end harness in tests/e2e.rs. Off by default so the normal workspace

@@ -64,6 +64,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // event bus
     let (events, _rx) = broadcast::channel(EVENT_CHANNEL_CAP);
 
+    // Notification subscriber: a single task on the WS event bus that maps
+    // terminal resource events to notifications and fans them out to each
+    // configured channel. Decoupled from the deploy/backup/task handlers.
+    tokio::spawn(rustify_server::notify::subscriber(
+        pool.clone(),
+        events.subscribe(),
+    ));
+
     // Runtime configuration and the on-disk SSH working directories. The mux
     // dir is handed to the executor; the key dir is where the deploy engine
     // materialises each server's private key `0600` on demand.
