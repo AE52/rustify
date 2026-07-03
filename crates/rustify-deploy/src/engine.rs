@@ -610,10 +610,146 @@ impl Engine {
                 self.exec_step(&self.in_helper(&bc.render()), false, false)
                     .await?;
             }
+            Pack::Railpack => {
+                self.build_railpack(image, sha).await?;
+            }
             // DockerImage / DockerCompose are handled outside build().
             Pack::DockerImage | Pack::DockerCompose => {}
         }
         Ok(())
+    }
+
+    /// Railpack build: `railpack prepare` → `docker buildx build` with the
+    /// Railpack BuildKit frontend. Port of `build_railpack_image`
+    /// (ApplicationDeploymentJob.php:2839-2908).
+    async fn build_railpack(&mut self, image: &str, sha: &str) -> Result<(), DeployError> {
+        use buildpacks::railpack as rp;
+
+        // buildx is mandatory for the docker-container driver Railpack needs.
+        // Fail early with a clear message rather than deep inside the build.
+        let probe = self
+            .exec_step(&self.in_helper("docker buildx version"), true, true)
+            .await?;
+        if probe.exit_code != 0 {
+            self.error(
+                "Railpack requires the Docker buildx CLI plugin on the build server. \
+                 Install or enable docker buildx and retry the deployment.",
+            )
+            .await;
+            return Err(DeployError::Build("docker buildx is not available".into()));
+        }
+
+        // One resolved build-time env map → the three Railpack outputs.
+        let vars = self.railpack_build_vars(sha);
+        let env = rp::plan_env(&vars);
+
+        // Idempotent builder bootstrap (docker-container driver).
+        self.info("Preparing Railpack buildx builder.").await;
+        self.exec_step(&self.in_helper(&rp::builder_create()), true, false)
+            .await?;
+
+        // Step 1: generate the build plan.
+        self.info("Generating Railpack build plan.").await;
+        let prepare = rp::prepare_command(
+            &self.workdir,
+            self.application.build_command.as_deref(),
+            self.application.start_command.as_deref(),
+            &env.prepare_env,
+            None,
+        );
+        self.exec_step(&self.in_helper(&prepare), true, false)
+            .await?;
+
+        // Log the plan with its `secrets` array stripped (never leak var names).
+        let plan = self
+            .exec_step(
+                &self.in_helper(&format!("cat {}", rp::PLAN_PATH)),
+                true,
+                true,
+            )
+            .await?;
+        if let Some(safe) = rp::strip_plan_secrets(&plan.stdout) {
+            self.info_hidden(&format!("Final Railpack plan: {safe}"))
+                .await;
+        }
+
+        // Step 2: build with buildx. force_rebuild → --no-cache; otherwise a
+        // stable cache-key plus a secrets-hash that busts the cache only when a
+        // build-time value actually changes.
+        let no_cache = self.deployment.force_rebuild;
+        let cache_key = (!no_cache).then(|| self.application.uuid.clone());
+        let secrets_hash = if !no_cache && !env.buildx_env_prefix.is_empty() {
+            Some(
+                rustify_core::crypto::secrets_hash(&env.buildx_env_prefix)
+                    .map_err(|e| DeployError::Build(format!("railpack secrets-hash: {e}")))?,
+            )
+        } else {
+            None
+        };
+        let build_cmd = rp::buildx_command(
+            &env,
+            self.add_hosts(),
+            no_cache,
+            cache_key,
+            secrets_hash,
+            image,
+            &self.workdir,
+        )
+        .render();
+
+        // The buildx command carries double-quoted args (BUILDKIT_SYNTAX) and
+        // process-env values, so write it to a script and run it rather than
+        // wrapping in `sh -c "…"`. The script text is recorded, never emitted to
+        // logs; secret values are additionally redacted from any streamed line.
+        self.info("Building docker image with Railpack.").await;
+        let script_path = format!("{}/railpack-build.sh", self.workdir);
+        self.exec_step(
+            &write_text_in_helper(&self.deployment.uuid, &script_path, &build_cmd),
+            true,
+            false,
+        )
+        .await?;
+        self.exec_step(
+            &self.in_helper(&format!("bash {script_path}")),
+            false,
+            false,
+        )
+        .await?;
+
+        // Reclaim the dedicated builder's cache (best-effort).
+        let _ = self
+            .exec_step(&self.in_helper(&rp::prune()), true, true)
+            .await;
+        Ok(())
+    }
+
+    /// Build-time env map for Railpack: user `is_buildtime` vars, the
+    /// `RUSTIFY_*`/`SOURCE_COMMIT` set, the install command (as an env, not a
+    /// flag) and the forced `curl`+`wget` apt packages
+    /// (ApplicationDeploymentJob.php:2577-2613).
+    fn railpack_build_vars(&self, sha: &str) -> Vec<(String, String)> {
+        let mut vars: Vec<(String, String)> = self
+            .env_vars
+            .iter()
+            .filter(|e| e.is_buildtime)
+            .map(|e| (e.key.clone(), e.value.clone()))
+            .collect();
+        for (k, v) in self.rustify_vars(sha) {
+            vars.push((k, v));
+        }
+        buildpacks::railpack::inject_install_command(
+            &mut vars,
+            self.application.install_command.as_deref(),
+        );
+        buildpacks::railpack::merge_deploy_apt_packages(&mut vars);
+        vars
+    }
+
+    /// `--add-host name:ip` entries for cross-server name resolution. Rustify
+    /// does not yet model cluster peers, so this is empty (parity gap with
+    /// Coolify's `$this->addHosts`).
+    fn add_hosts(&self) -> Vec<(String, String)> {
+        Vec::new()
     }
 
     // ---- step 7 -------------------------------------------------------------

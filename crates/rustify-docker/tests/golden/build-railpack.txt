@@ -1,0 +1,7 @@
+# Ported from Coolify ApplicationDeploymentJob::railpack_build_command
+# (app/Jobs/ApplicationDeploymentJob.php:2658-2686): the env process-prefix
+# (:2632-2643), `docker buildx build --builder coolify-railpack` (:2676),
+# {addHosts} --network host (:2677), BUILDKIT_SYNTAX build-arg (:2678),
+# cache-key + secrets-hash cache args (:2660-2669), --secret flags
+# (:2645-2656), and the -f/plan --progress plain --load -t trailer (:2681-2685).
+env 'A=1' 'B=2' docker buildx build --builder coolify-railpack --add-host db:10.0.0.5 --network host --build-arg BUILDKIT_SYNTAX="ghcr.io/railwayapp/railpack-frontend:v0.23.0" --build-arg cache-key='app-uuid' --build-arg secrets-hash=deadbeef --secret 'id=A,env=A' --secret 'id=B,env=B' -f /artifacts/railpack-plan.json --progress plain --load -t app-uuid:commitsha /artifacts/dep1

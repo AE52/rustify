@@ -358,7 +358,7 @@ function ProjectStep({ state, patch }: { state: OnboardingState; patch: Patch })
   )
 }
 
-const BUILD_PACKS: BuildPack[] = ['nixpacks', 'dockerfile', 'static', 'docker_image', 'docker_compose']
+const BUILD_PACKS: BuildPack[] = ['nixpacks', 'dockerfile', 'static', 'docker_image', 'docker_compose', 'railpack']
 
 function AppStep({ state, patch }: { state: OnboardingState; patch: Patch }) {
   const [name, setName] = useState('my-app')

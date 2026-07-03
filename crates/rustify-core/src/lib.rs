@@ -19,6 +19,7 @@ pub mod ids;
 pub mod logline;
 pub mod notify;
 pub mod passwords;
+pub mod railpack;
 pub mod redact;
 pub mod retention;
 pub mod service_vars;
