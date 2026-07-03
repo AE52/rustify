@@ -69,6 +69,21 @@ pub struct ValidateResponse {
 pub struct CloudflaredEnable {
     /// The Cloudflare tunnel token to run the agent with.
     pub tunnel_token: String,
+    /// The tunnel's public SSH hostname (Coolify: `ssh_domain`). Once the tunnel
+    /// is healthy the server's `ip` is repointed at this hostname so subsequent
+    /// ssh connections dial `cloudflared access ssh --hostname <this>`.
+    pub ssh_hostname: String,
+}
+
+/// Normalise an operator-supplied tunnel SSH hostname: drop any `http(s)://`
+/// scheme and trailing slash, matching Coolify's `automatedCloudflareConfig`.
+fn normalize_ssh_hostname(raw: &str) -> String {
+    raw.trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_end_matches('/')
+        .trim()
+        .to_string()
 }
 
 /// Render a server row with its key uuid resolved.
@@ -326,6 +341,12 @@ pub async fn cloudflared_enable(
             "tunnel_token must not be empty".to_string(),
         ));
     }
+    let ssh_hostname = normalize_ssh_hostname(&body.ssh_hostname);
+    if ssh_hostname.is_empty() {
+        return Err(ApiError::Validation(
+            "ssh_hostname must not be empty".to_string(),
+        ));
+    }
     state
         .queue
         .enqueue(
@@ -333,6 +354,7 @@ pub async fn cloudflared_enable(
             json!({
                 "server_uuid": server.uuid,
                 "tunnel_token": body.tunnel_token,
+                "ssh_hostname": ssh_hostname,
                 "action": "configure",
             }),
             None,
@@ -395,4 +417,27 @@ pub async fn proxy_restart(
     Path(uuid): Path<String>,
 ) -> ApiResult<Response> {
     proxy_lifecycle(&state, &team, &uuid, "restart").await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_ssh_hostname;
+
+    #[test]
+    fn strips_scheme_and_trailing_slash() {
+        assert_eq!(
+            normalize_ssh_hostname("https://ssh.example.com/"),
+            "ssh.example.com"
+        );
+        assert_eq!(
+            normalize_ssh_hostname("http://ssh.example.com"),
+            "ssh.example.com"
+        );
+        assert_eq!(
+            normalize_ssh_hostname("  ssh.example.com  "),
+            "ssh.example.com"
+        );
+        assert_eq!(normalize_ssh_hostname("ssh.example.com"), "ssh.example.com");
+        assert_eq!(normalize_ssh_hostname("  "), "");
+    }
 }

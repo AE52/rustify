@@ -154,7 +154,13 @@ impl JobHandler for ConfigureCloudflaredHandler {
                 .ok_or_else(|| {
                     anyhow::anyhow!("configure_cloudflared payload missing tunnel_token")
                 })?;
-            configure_cloudflared(&self.deps, server_uuid, token)
+            let ssh_hostname = payload
+                .get("ssh_hostname")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| {
+                    anyhow::anyhow!("configure_cloudflared payload missing ssh_hostname")
+                })?;
+            configure_cloudflared(&self.deps, server_uuid, token, ssh_hostname)
                 .await
                 .map_err(|e| anyhow::anyhow!(e.to_string()))?;
         }
@@ -182,11 +188,19 @@ async fn conn_for(
 }
 
 /// Install the tunnel, verify it becomes healthy, then persist the flag and
-/// swap the server's `ip` for its ssh hostname (stashing the prior `ip`).
+/// swap the server's `ip` for the operator-supplied tunnel SSH hostname
+/// (stashing the prior `ip` in `ip_previous`).
+///
+/// `ssh_hostname` is the Cloudflare-tunnel public hostname that
+/// `cloudflared access ssh --hostname %h` resolves against; it must come from
+/// the operator (Coolify: `ConfigureCloudflared`'s `ssh_domain`), never the
+/// server uuid — the uuid does not resolve and would make the server
+/// unreachable for every subsequent ssh connection.
 pub async fn configure_cloudflared(
     deps: &DeployEngineDeps,
     server_uuid: &str,
     tunnel_token: &str,
+    ssh_hostname: &str,
 ) -> Result<(), DeployError> {
     let (server, conn) = conn_for(deps, server_uuid).await?;
 
@@ -220,7 +234,7 @@ pub async fn configure_cloudflared(
 
     // Persist the flag and repoint ssh at the tunnel hostname (keep ip_previous).
     ServerRepo::new(deps.pool.clone())
-        .set_cloudflare_tunnel(server.id, true, Some(&server.uuid))
+        .set_cloudflare_tunnel(server.id, true, Some(ssh_hostname))
         .await?;
     Ok(())
 }
