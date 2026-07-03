@@ -18,7 +18,11 @@ import ApplicationDeployments from './routes/applications/[uuid]/deployments'
 import ApplicationPreviews from './routes/applications/[uuid]/previews'
 import ApplicationTasks from './routes/applications/[uuid]/tasks'
 import ApplicationTerminal from './routes/applications/[uuid]/terminal'
+import ApplicationMetrics from './routes/applications/[uuid]/metrics'
 import DeploymentPage from './routes/deployments/[uuid]'
+import NewServer from './routes/servers/new'
+import TeamsPage from './routes/teams'
+import InvitationPage from './routes/invitations/[uuid]'
 import DatabasesList from './routes/databases/index'
 import NewDatabase from './routes/databases/new'
 import DatabasePage from './routes/databases/[uuid]'
@@ -45,6 +49,9 @@ const router = createBrowserRouter([
     children: [
       { path: '/', element: <Dashboard /> },
       { path: '/onboarding', element: <Onboarding /> },
+      { path: '/teams', element: <TeamsPage /> },
+      { path: '/invitations/:uuid', element: <InvitationPage /> },
+      { path: '/servers/new', element: <NewServer /> },
       { path: '/servers/:uuid', element: <ServerPage /> },
       { path: '/projects/:uuid', element: <ProjectPage /> },
       {
@@ -59,6 +66,7 @@ const router = createBrowserRouter([
           { path: 'deployments', element: <ApplicationDeployments /> },
           { path: 'previews', element: <ApplicationPreviews /> },
           { path: 'tasks', element: <ApplicationTasks /> },
+          { path: 'metrics', element: <ApplicationMetrics /> },
           { path: 'terminal', element: <ApplicationTerminal /> },
         ],
       },

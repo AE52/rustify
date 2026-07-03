@@ -34,6 +34,7 @@ const TABS = [
   { to: 'deployments', label: 'Deployments' },
   { to: 'previews', label: 'Previews' },
   { to: 'tasks', label: 'Tasks' },
+  { to: 'metrics', label: 'Metrics' },
   { to: 'terminal', label: 'Terminal' },
 ] as const
 

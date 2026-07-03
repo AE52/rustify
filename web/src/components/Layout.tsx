@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, NavLink, Outlet, useNavigate } from 'react-router'
 import { api, ApiError, type User } from '../api/client'
 import { errText } from './ui'
+import { TeamSwitcher } from './TeamSwitcher'
 
 const navCls = ({ isActive }: { isActive: boolean }) =>
   `rounded-md px-3 py-1.5 text-sm ${
@@ -54,9 +55,12 @@ export function Layout() {
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-52 shrink-0 flex-col border-r border-zinc-800 p-4">
-        <Link to="/" className="mb-6 px-3 text-lg font-bold tracking-tight text-zinc-100">
+        <Link to="/" className="mb-4 px-3 text-lg font-bold tracking-tight text-zinc-100">
           rustify
         </Link>
+        <div className="mb-4">
+          <TeamSwitcher />
+        </div>
         <nav className="flex flex-col gap-1">
           <NavLink to="/" end className={navCls}>
             Dashboard
@@ -72,6 +76,9 @@ export function Layout() {
           </NavLink>
           <NavLink to="/notifications" className={navCls}>
             Notifications
+          </NavLink>
+          <NavLink to="/teams" className={navCls}>
+            Team
           </NavLink>
           <NavLink to="/onboarding" className={navCls}>
             Onboarding
