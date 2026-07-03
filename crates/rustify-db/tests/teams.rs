@@ -240,3 +240,55 @@ async fn root_team_sole_member_cannot_be_removed(pool: PgPool) {
     // The root team itself is undeletable too.
     assert!(!repo.delete(0).await.unwrap());
 }
+
+#[sqlx::test]
+async fn sole_owner_self_demote_is_prevented(pool: PgPool) {
+    let repo = TeamRepo::new(pool.clone());
+    let team = repo.create_team("t", false).await.unwrap();
+    let owner = mk_user(&pool, team.id, "owner@x.io").await;
+    let member = mk_user(&pool, team.id, "member@x.io").await;
+    repo.add_member(team.id, owner, Role::Owner).await.unwrap();
+    repo.add_member(team.id, member, Role::Member)
+        .await
+        .unwrap();
+
+    // Demoting the only owner would leave the team ownerless: rejected.
+    let err = repo
+        .set_role(team.id, owner, Role::Member)
+        .await
+        .expect_err("sole-owner demote must be rejected");
+    assert!(
+        matches!(err, rustify_db::DbError::Invalid(_)),
+        "expected an Invalid error, got {err:?}"
+    );
+    // The refused change leaves the owner's role intact.
+    assert_eq!(
+        repo.role_in_team(owner, team.id).await.unwrap(),
+        Some(Role::Owner)
+    );
+}
+
+#[sqlx::test]
+async fn non_last_owner_demote_succeeds(pool: PgPool) {
+    let repo = TeamRepo::new(pool.clone());
+    let team = repo.create_team("t", false).await.unwrap();
+    let owner_a = mk_user(&pool, team.id, "a@x.io").await;
+    let owner_b = mk_user(&pool, team.id, "b@x.io").await;
+    repo.add_member(team.id, owner_a, Role::Owner)
+        .await
+        .unwrap();
+    repo.add_member(team.id, owner_b, Role::Owner)
+        .await
+        .unwrap();
+
+    // With two owners, demoting one still leaves an owner: allowed.
+    assert!(repo.set_role(team.id, owner_a, Role::Admin).await.unwrap());
+    assert_eq!(
+        repo.role_in_team(owner_a, team.id).await.unwrap(),
+        Some(Role::Admin)
+    );
+    assert_eq!(
+        repo.role_in_team(owner_b, team.id).await.unwrap(),
+        Some(Role::Owner)
+    );
+}

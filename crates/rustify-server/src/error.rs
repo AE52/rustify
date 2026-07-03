@@ -93,6 +93,7 @@ impl From<DbError> for ApiError {
     fn from(err: DbError) -> Self {
         match &err {
             DbError::NotFound => ApiError::NotFound,
+            DbError::Invalid(m) => ApiError::Conflict(m.clone()),
             DbError::Sqlx(e) => {
                 if e.as_database_error()
                     .is_some_and(|d| d.is_unique_violation())
