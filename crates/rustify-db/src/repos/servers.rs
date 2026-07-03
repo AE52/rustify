@@ -37,6 +37,9 @@ pub struct ServerSettings {
     pub proxy_status: String,
     pub proxy_custom_config: Option<String>,
     pub is_build_server: bool,
+    /// Whether the interactive web terminal (PTY over SSH) is allowed for this
+    /// server (migration 0010; parity with Coolify `isTerminalEnabled`).
+    pub is_terminal_enabled: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -233,7 +236,7 @@ impl ServerRepo {
         let row = sqlx::query_as::<_, ServerSettings>(
             "SELECT id, server_id, concurrent_builds, deployment_queue_limit, dynamic_timeout,
                     connection_timeout, proxy_type, proxy_status, proxy_custom_config,
-                    is_build_server, created_at, updated_at
+                    is_build_server, is_terminal_enabled, created_at, updated_at
              FROM server_settings WHERE server_id = $1",
         )
         .bind(server_id)
