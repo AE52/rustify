@@ -9,6 +9,8 @@ pub mod compose;
 pub mod db_compose;
 pub mod inspect;
 pub mod labels;
+pub mod service_compose;
+pub mod service_manifest;
 
 pub use build_command::BuildCommand;
 pub use compose::{AppComposeInput, HealthCheck, generate_compose};
@@ -18,6 +20,8 @@ pub use db_compose::{
 };
 pub use inspect::{ContainerHealth, ManagedContainer, parse_containers, parse_health};
 pub use labels::traefik_labels;
+pub use service_compose::{MutatedService, ServiceComposeError, parse_and_mutate_service};
+pub use service_manifest::{ServiceTemplate, build_manifest, load_manifest, parse_template};
 
 #[cfg(test)]
 pub(crate) mod test_support {

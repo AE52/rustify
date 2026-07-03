@@ -1986,9 +1986,11 @@ dependencies = [
  "base64",
  "chrono",
  "cuid2",
+ "hmac",
  "rand 0.8.6",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "thiserror 2.0.18",
  "tokio",
@@ -2025,6 +2027,8 @@ dependencies = [
  "rustify-proxy",
  "serde",
  "serde_json",
+ "serde_yaml",
+ "sha2",
  "sqlx",
  "thiserror 2.0.18",
  "tokio",
@@ -2036,6 +2040,7 @@ dependencies = [
 name = "rustify-docker"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "rustify-core",
  "serde",
  "serde_json",
@@ -2081,6 +2086,7 @@ dependencies = [
  "rustify-core",
  "rustify-db",
  "rustify-deploy",
+ "rustify-docker",
  "rustify-jobs",
  "rustify-ssh",
  "serde",

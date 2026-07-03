@@ -34,11 +34,16 @@ pub mod envfile;
 pub mod git;
 pub mod rolling;
 pub mod server_setup;
+pub mod service;
 pub mod status_sync;
 
 pub use database::{StartDatabaseHandler, StopDatabaseHandler, start_database, stop_database};
 pub use engine::{DeployJobHandler, run_deployment};
 pub use server_setup::ServerSetupHandler;
+pub use service::{
+    SERVICE_DEPLOY_KIND, SERVICE_STOP_KIND, ServiceDeployHandler, ServiceStopHandler,
+    deploy_service, stop_service,
+};
 pub use status_sync::status_sync_task;
 
 /// Broadcast channel of realtime events (Contract C4).
