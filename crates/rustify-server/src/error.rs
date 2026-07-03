@@ -22,6 +22,8 @@ pub struct ApiErrorBody {
 pub enum ApiError {
     /// Missing/invalid session cookie or bearer token.
     Unauthorized,
+    /// Authenticated but lacks the required team role/permission (HTTP 403).
+    Forbidden(String),
     /// The addressed resource does not exist (or is not in the caller's team).
     NotFound,
     /// The request body/params failed validation (HTTP 422).
@@ -40,6 +42,7 @@ impl ApiError {
                 "unauthorized",
                 "authentication required".to_string(),
             ),
+            ApiError::Forbidden(m) => (StatusCode::FORBIDDEN, "forbidden", m.clone()),
             ApiError::NotFound => (
                 StatusCode::NOT_FOUND,
                 "not_found",
