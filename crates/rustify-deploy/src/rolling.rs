@@ -81,15 +81,20 @@ pub async fn rolling_update(engine: &mut Engine) -> Result<(), DeployError> {
                     "Rolling update not supported ({reason}); recreating container."
                 ))
                 .await;
-            // Stop the old container first, then start the new one.
+            // Stop the old container first, then start the new one. The old
+            // container is already gone, so `--remove-orphans` is safe here.
             engine.stop_other_containers(None).await?;
-            engine.compose_up().await?;
+            engine.compose_up(true).await?;
             engine.info("Container recreated.").await;
             Ok(())
         }
         Eligibility::Eligible => {
             engine.info("Rolling update started.").await;
-            engine.compose_up().await?;
+            // Start the new (uniquely-named) container ALONGSIDE the old one: no
+            // `--remove-orphans`, so the old container keeps serving traffic
+            // until the health gate passes. `stop_other_containers` removes the
+            // old container only after a healthy result.
+            engine.compose_up(false).await?;
             match health_check(engine, &container_name).await {
                 Ok(()) => {
                     // Healthy: remove every managed container for this app

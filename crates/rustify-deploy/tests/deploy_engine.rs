@@ -279,6 +279,84 @@ async fn unhealthy_removes_new_keeps_old_and_fails(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "../rustify-db/migrations")]
+async fn rolling_compose_up_has_no_remove_orphans(pool: PgPool) {
+    // On the rolling (Eligible) path the new container must come up ALONGSIDE
+    // the old one: `docker compose up` must NOT carry `--remove-orphans`, or the
+    // still-running previous container is deleted as an orphan during `up`.
+    common::init_secret_key();
+    let fx = setup(&pool, 2).await;
+    let (app_id, _uuid) = new_app(&pool, &fx, "nixpacks").await;
+    let dep = queue(&pool, app_id, fx.server_id, false).await;
+
+    let fake = Arc::new(FakeExecutor::new().respond("git ls-remote", LS_REMOTE_OK));
+    let d = common::deps(&pool, fake.clone());
+    run_deployment(&d.deps, &CancellationToken::new(), &dep.uuid)
+        .await
+        .unwrap();
+
+    let up = fake.index_of("docker compose").expect("compose up");
+    let up_script = &fake.scripts()[up];
+    assert!(
+        up_script.contains("docker compose -f docker-compose.yml up -d"),
+        "rolling path brings the stack up"
+    );
+    assert!(
+        !up_script.contains("--remove-orphans"),
+        "rolling compose-up must NOT pass --remove-orphans (would delete the old container): {up_script}"
+    );
+    assert_eq!(status(&pool, dep.id).await, DeploymentStatus::Finished);
+}
+
+#[sqlx::test(migrations = "../rustify-db/migrations")]
+async fn healthy_stops_old_only_after_health_gate(pool: PgPool) {
+    // With an old container present and healthchecking on: the old container is
+    // stopped ONLY after the new one reports healthy (compose up < health < stop).
+    common::init_secret_key();
+    let fx = setup(&pool, 2).await;
+    let (app_id, app_uuid) = new_app(&pool, &fx, "nixpacks").await;
+    sqlx::query(
+        "UPDATE applications SET health_check_enabled = true,
+             health_check_start_period = 0, health_check_interval = 0, health_check_retries = 1
+         WHERE id = $1",
+    )
+    .bind(app_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let dep = queue(&pool, app_id, fx.server_id, false).await;
+
+    // The ps sweep that stop_other_containers runs reports one managed OLD
+    // container for this app; the new container is healthy.
+    let old_ps = format!(
+        r#"{{"ID":"old1","Names":"{app_uuid}-old","Image":"img","State":"running","Labels":"rustify.managed=true,rustify.applicationUuid={app_uuid},rustify.pullRequestId=0"}}"#
+    );
+    let fake = Arc::new(
+        FakeExecutor::new()
+            .respond("git ls-remote", LS_REMOTE_OK)
+            .respond(
+                "docker ps -a --filter label=rustify.applicationUuid",
+                &old_ps,
+            )
+            .respond("State.Health.Status", "\"healthy\""),
+    );
+    let d = common::deps(&pool, fake.clone());
+    run_deployment(&d.deps, &CancellationToken::new(), &dep.uuid)
+        .await
+        .unwrap();
+
+    let up = fake.index_of("docker compose").expect("compose up");
+    let health = fake.index_of("State.Health.Status").expect("health check");
+    let stop = fake
+        .index_of(&format!("docker stop {app_uuid}-old"))
+        .expect("old container stopped");
+    assert!(
+        up < health && health < stop,
+        "old container must be stopped only after the health gate passes (up={up} health={health} stop={stop})"
+    );
+    assert_eq!(status(&pool, dep.id).await, DeploymentStatus::Finished);
+}
+
+#[sqlx::test(migrations = "../rustify-db/migrations")]
 async fn cancellation_between_clone_and_build(pool: PgPool) {
     common::init_secret_key();
     let fx = setup(&pool, 2).await;
