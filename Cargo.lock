@@ -416,6 +416,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "croner"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c344b0690c1ad1c7176fe18eb173e0c927008fdaaa256e40dfd43ddd149c0843"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "crossbeam-queue"
 version = "0.3.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1985,6 +1994,7 @@ dependencies = [
  "async-trait",
  "base64",
  "chrono",
+ "croner",
  "cuid2",
  "hmac",
  "rand 0.8.6",

@@ -118,6 +118,19 @@ impl WsEvent {
             }),
         )
     }
+
+    /// A scheduled task's execution changed state (`scheduled-task:<uuid>`).
+    pub fn scheduled_task_status_changed(
+        task_uuid: &str,
+        execution_uuid: &str,
+        status: &str,
+    ) -> Self {
+        Self::new(
+            format!("scheduled-task:{task_uuid}"),
+            "scheduled_task_status_changed",
+            json!({ "uuid": task_uuid, "execution_uuid": execution_uuid, "status": status }),
+        )
+    }
 }
 
 #[cfg(test)]
