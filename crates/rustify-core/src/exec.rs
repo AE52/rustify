@@ -11,6 +11,10 @@ pub struct ServerConn {
     pub user: String,                 // ssh user
     pub key_path: std::path::PathBuf, // 0600 key file on rustify host
     pub connection_timeout_secs: u32, // default 10
+    /// Optional `ssh -o ProxyCommand=<value>` reach-through. Set when the server
+    /// is behind a Cloudflare tunnel (`cloudflared access ssh --hostname %h`);
+    /// injected into every ssh/scp/mux-master invocation. `None` = direct.
+    pub proxy_command: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]

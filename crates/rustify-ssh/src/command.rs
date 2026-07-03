@@ -24,6 +24,21 @@ use std::path::Path;
 /// ControlPersist window for the master connection, in seconds.
 pub const MUX_PERSIST_SECS: u32 = 3600;
 
+/// The `ProxyCommand` value used to reach a server behind a Cloudflare tunnel.
+/// `%h` expands to the target hostname (parity with Coolify's cloudflared SSH
+/// access, app/Helpers/SshMultiplexingHelper.php cloudflared branch).
+pub const CLOUDFLARED_SSH_PROXY_COMMAND: &str = "cloudflared access ssh --hostname %h";
+
+/// Render ` -o ProxyCommand='<value>'` (leading space) when `conn` carries a
+/// proxy command, else the empty string. Injected into every ssh/scp/mux-master
+/// command so a tunnelled server is reachable transparently.
+pub(crate) fn proxy_command_opt(conn: &ServerConn) -> String {
+    match &conn.proxy_command {
+        Some(cmd) if !cmd.is_empty() => format!(" -o ProxyCommand={}", sh_quote(cmd)),
+        _ => String::new(),
+    }
+}
+
 /// Generates the heredoc delimiter nonce. Injected so tests can pin a
 /// deterministic value and factor it out of golden strings.
 pub trait NonceGen: Send + Sync {
@@ -59,9 +74,10 @@ fn common_options(conn: &ServerConn, is_scp: bool) -> String {
     format!(
         "-i {key} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
 -o PasswordAuthentication=no -o ConnectTimeout={timeout} -o ServerAliveInterval=20 \
--o RequestTTY=no -o LogLevel=ERROR {port_flag} {port}",
+-o RequestTTY=no -o LogLevel=ERROR{proxy} {port_flag} {port}",
         key = conn.key_path.display(),
         timeout = conn.connection_timeout_secs,
+        proxy = proxy_command_opt(conn),
         port_flag = port_flag,
         port = conn.port,
     )
@@ -145,6 +161,14 @@ mod tests {
             user: "root".into(),
             key_path: PathBuf::from("/keys/ssh_key@k1"),
             connection_timeout_secs: 10,
+            proxy_command: None,
+        }
+    }
+
+    fn tunnel_conn() -> ServerConn {
+        ServerConn {
+            proxy_command: Some(CLOUDFLARED_SSH_PROXY_COMMAND.to_string()),
+            ..conn()
         }
     }
 
@@ -212,5 +236,39 @@ mod tests {
     #[test]
     fn user_at_host_is_shell_quoted() {
         assert_eq!(user_at_host(&conn()), "'root'@'1.2.3.4'");
+    }
+
+    #[test]
+    fn proxy_command_opt_empty_when_none() {
+        assert_eq!(proxy_command_opt(&conn()), "");
+    }
+
+    #[test]
+    fn proxy_command_injected_into_ssh_command() {
+        let got = build_ssh_command(&tunnel_conn(), "echo hi", 3600, None, NONCE);
+        assert!(
+            got.contains(
+                "-o LogLevel=ERROR -o ProxyCommand='cloudflared access ssh --hostname %h' -p 22"
+            ),
+            "ssh must carry the cloudflared ProxyCommand: {got}"
+        );
+    }
+
+    #[test]
+    fn proxy_command_injected_into_scp_command() {
+        let local = PathBuf::from("/tmp/a");
+        let got = build_scp_command(&tunnel_conn(), &local, "/data/a", 3600, None);
+        assert!(
+            got.contains(
+                "-o LogLevel=ERROR -o ProxyCommand='cloudflared access ssh --hostname %h' -P 22"
+            ),
+            "scp must carry the cloudflared ProxyCommand: {got}"
+        );
+    }
+
+    #[test]
+    fn direct_connection_never_has_proxy_command() {
+        let got = build_ssh_command(&conn(), "echo hi", 3600, None, NONCE);
+        assert!(!got.contains("ProxyCommand"));
     }
 }
