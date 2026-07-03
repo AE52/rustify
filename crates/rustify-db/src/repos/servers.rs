@@ -368,6 +368,39 @@ impl ServerRepo {
         Ok(())
     }
 
+    /// Partial update of a server's operational settings (proxy type, build /
+    /// terminal / metrics flags). `None` args leave the column unchanged. Returns
+    /// the refreshed settings, or `None` when the server has no settings row.
+    pub async fn update_settings(
+        &self,
+        server_id: i64,
+        proxy_type: Option<&str>,
+        is_build_server: Option<bool>,
+        is_terminal_enabled: Option<bool>,
+        metrics_enabled: Option<bool>,
+        metrics_refresh_rate_seconds: Option<i32>,
+    ) -> DbResult<Option<ServerSettings>> {
+        sqlx::query(
+            "UPDATE server_settings SET
+                proxy_type = COALESCE($2, proxy_type),
+                is_build_server = COALESCE($3, is_build_server),
+                is_terminal_enabled = COALESCE($4, is_terminal_enabled),
+                metrics_enabled = COALESCE($5, metrics_enabled),
+                metrics_refresh_rate_seconds = COALESCE($6, metrics_refresh_rate_seconds),
+                updated_at = now()
+             WHERE server_id = $1",
+        )
+        .bind(server_id)
+        .bind(proxy_type)
+        .bind(is_build_server)
+        .bind(is_terminal_enabled)
+        .bind(metrics_enabled)
+        .bind(metrics_refresh_rate_seconds)
+        .execute(&self.pool)
+        .await?;
+        self.settings(server_id).await
+    }
+
     pub async fn list(&self, team_id: i64) -> DbResult<Vec<Server>> {
         let rows = sqlx::query_as::<_, Server>(&format!(
             "SELECT {SERVER_COLS} FROM servers WHERE team_id = $1 ORDER BY id"
