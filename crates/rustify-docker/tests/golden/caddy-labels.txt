@@ -1,0 +1,15 @@
+# Caddy container labels for a single HTTPS FQDN.
+# Ported from Coolify fqdnLabelsForCaddy (bootstrap/helpers/docker.php:356-412),
+# reduced to the pinned single-FQDN set. App: uuid=app-uuid, id=42, port 3000,
+# fqdn https://x.example.com, network rustify, no www/non-www redirect.
+
+rustify.managed=true
+rustify.applicationId=42
+rustify.applicationUuid=app-uuid
+rustify.pullRequestId=0
+rustify.deploymentId=dep-uuid
+caddy_ingress_network=rustify
+caddy_0=https://x.example.com
+caddy_0.header=-Server
+caddy_0.handle_path.0_reverse_proxy={{upstreams 3000}}
+caddy_0.encode=zstd gzip

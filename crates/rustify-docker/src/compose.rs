@@ -5,7 +5,7 @@
 //! renders it to YAML via `serde_yaml`, wiring in the Traefik labels from
 //! [`crate::labels::traefik_labels`].
 
-use crate::labels::traefik_labels;
+use crate::labels::{ProxyKind, labels_for};
 use serde::Serialize;
 use std::collections::BTreeMap;
 
@@ -114,8 +114,15 @@ struct Network {
     external: bool,
 }
 
-/// Render a single-service compose file for `app`. Deterministic output.
+/// Render a single-service compose file for `app`, emitting Traefik container
+/// labels. Deterministic output.
 pub fn generate_compose(app: &AppComposeInput) -> String {
+    generate_compose_for_proxy(app, ProxyKind::Traefik)
+}
+
+/// Render a single-service compose file for `app` under the given reverse proxy,
+/// selecting the matching container label set (Traefik vs Caddy). Deterministic.
+pub fn generate_compose_for_proxy(app: &AppComposeInput, kind: ProxyKind) -> String {
     let healthcheck = app.health.as_ref().map(|h| Healthcheck {
         test: vec!["CMD-SHELL".to_string(), h.test_command()],
         interval: format!("{}s", h.interval_secs),
@@ -136,7 +143,7 @@ pub fn generate_compose(app: &AppComposeInput) -> String {
         expose: app.ports_exposes.clone(),
         ports: app.ports_mappings.clone(),
         env_file,
-        labels: traefik_labels(app),
+        labels: labels_for(app, kind),
         healthcheck,
         mem_limit,
         cpus,
