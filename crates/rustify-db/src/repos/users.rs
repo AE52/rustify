@@ -102,4 +102,17 @@ impl UserRepo {
             .await?;
         Ok(row)
     }
+
+    /// Point the user at a new active team (`users.team_id`). Used on team
+    /// switch and invitation accept (Coolify `refreshSession`).
+    pub async fn set_active_team(&self, user_id: i64, team_id: i64) -> DbResult<Option<User>> {
+        let row = sqlx::query_as::<_, User>(&format!(
+            "UPDATE users SET team_id = $2, updated_at = now() WHERE id = $1 RETURNING {COLS}"
+        ))
+        .bind(user_id)
+        .bind(team_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row)
+    }
 }

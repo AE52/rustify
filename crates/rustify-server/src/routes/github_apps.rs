@@ -21,7 +21,7 @@ use rustify_db::repos::{GithubApp, GithubAppPatch, GithubAppRepo, KeyRepo, NewGi
 use rustify_deploy::github::{self, GithubAppRow};
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 // ----- DTOs ---------------------------------------------------------------
@@ -164,6 +164,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<GithubAppCreate>,
 ) -> ApiResult<Response> {
     let private_key_id = match &body.private_key_uuid {
@@ -217,6 +218,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<GithubAppUpdate>,
 ) -> ApiResult<Json<GithubAppDto>> {
@@ -257,6 +259,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     owned(&state, &team, &uuid).await?;

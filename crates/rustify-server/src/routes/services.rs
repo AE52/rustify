@@ -16,7 +16,7 @@ use rustify_db::repos::{
 };
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 use crate::routes::service_templates::template_compose;
 
@@ -169,6 +169,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<ServiceCreate>,
 ) -> ApiResult<Response> {
     let compose_raw = template_compose(&body.template_key).ok_or_else(|| {
@@ -236,6 +237,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ServiceUpdate>,
 ) -> ApiResult<Json<ServiceDto>> {
@@ -259,6 +261,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     resolve(&state, &team, &uuid).await?;

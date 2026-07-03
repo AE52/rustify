@@ -127,6 +127,17 @@ impl SettingsRepo {
         Ok(())
     }
 
+    /// Revoke every session of a user — forces re-auth so a changed team role
+    /// or membership takes effect immediately (Coolify `RevokeUserTeamTokens` +
+    /// team-cache clear on member demotion/removal). Returns rows deleted.
+    pub async fn revoke_user_sessions(&self, user_id: i64) -> DbResult<u64> {
+        let result = sqlx::query("DELETE FROM sessions WHERE user_id = $1")
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected())
+    }
+
     // --- api tokens ---
 
     /// Store an API token by its hash (the plaintext is shown once, never

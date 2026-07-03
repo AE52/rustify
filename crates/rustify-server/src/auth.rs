@@ -14,7 +14,8 @@ use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, header};
 use rand::RngCore;
-use rustify_db::repos::{SettingsRepo, TeamRepo, User, UserRepo};
+use rustify_core::Role;
+use rustify_db::repos::{ApiToken, SettingsRepo, TeamRepo, User, UserRepo};
 use sha2::{Digest, Sha256};
 
 use crate::app::AppState;
@@ -85,15 +86,31 @@ pub fn read_bearer(headers: &HeaderMap) -> Option<String> {
 /// scoped by an API token.
 pub enum Principal {
     Session(User),
-    Token { team_id: i64 },
+    Token(ApiToken),
 }
 
 impl Principal {
     pub fn team_id(&self) -> i64 {
         match self {
             Principal::Session(u) => u.team_id,
-            Principal::Token { team_id } => *team_id,
+            Principal::Token(t) => t.team_id,
         }
+    }
+}
+
+/// The role a bearer token carries in its team. API tokens have no per-user
+/// pivot in this schema, so their effective role is derived from their
+/// abilities (parity with Coolify's `EnsureTokenBelongsToCurrentTeamMember`,
+/// which rejects write-capable tokens whose member role is not admin/owner):
+/// write-capable tokens act as admins, read/deploy-only tokens as members.
+pub fn token_role(abilities: &[String]) -> Role {
+    let write_capable = abilities
+        .iter()
+        .any(|a| a == "root" || a == "write" || a == "write:sensitive");
+    if write_capable {
+        Role::Admin
+    } else {
+        Role::Member
     }
 }
 
@@ -110,27 +127,47 @@ pub async fn resolve_session(state: &AppState, token: &str) -> Result<User, ApiE
         .ok_or(ApiError::Unauthorized)
 }
 
-/// Resolve a bearer token to its owning team id.
-pub async fn resolve_bearer(state: &AppState, raw: &str) -> Result<i64, ApiError> {
+/// Resolve a bearer token to its `api_tokens` row.
+pub async fn resolve_bearer(state: &AppState, raw: &str) -> Result<ApiToken, ApiError> {
     let hash = sha256_hex(raw);
-    let token = SettingsRepo::new(state.pool.clone())
+    SettingsRepo::new(state.pool.clone())
         .find_api_token_by_hash(&hash)
         .await?
-        .ok_or(ApiError::Unauthorized)?;
-    Ok(token.team_id)
+        .ok_or(ApiError::Unauthorized)
 }
 
 /// Resolve the principal from a request's headers (bearer wins over cookie).
 pub async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Principal, ApiError> {
     if let Some(raw) = read_bearer(headers) {
-        let team_id = resolve_bearer(state, &raw).await?;
-        return Ok(Principal::Token { team_id });
+        let token = resolve_bearer(state, &raw).await?;
+        return Ok(Principal::Token(token));
     }
     if let Some(token) = read_cookie(headers, SESSION_COOKIE) {
         let user = resolve_session(state, &token).await?;
         return Ok(Principal::Session(user));
     }
     Err(ApiError::Unauthorized)
+}
+
+/// Resolve the active team id and the caller's role in that team.
+///
+/// - Session: the user's active team (`users.team_id`); role from the
+///   `team_user` pivot (defaulting to `member` when no pivot row exists).
+/// - Bearer: the token's `team_id`; role derived from the token abilities.
+pub async fn resolve_team_role(
+    state: &AppState,
+    principal: &Principal,
+) -> Result<(i64, Role), ApiError> {
+    match principal {
+        Principal::Session(u) => {
+            let role = TeamRepo::new(state.pool.clone())
+                .role_in_team(u.id, u.team_id)
+                .await?
+                .unwrap_or(Role::Member);
+            Ok((u.team_id, role))
+        }
+        Principal::Token(t) => Ok((t.team_id, token_role(&t.abilities))),
+    }
 }
 
 /// A logged-in user (session only — bearer tokens have no user context).
@@ -158,16 +195,27 @@ impl FromRequestParts<AppState> for CurrentUser {
                 name: u.name,
                 team_id: u.team_id,
             }),
-            Principal::Token { .. } => Err(ApiError::Unauthorized),
+            Principal::Token(_) => Err(ApiError::Unauthorized),
         }
     }
 }
 
-/// The team scope of the request, resolved from either a session or a token.
+/// The team scope of the request, resolved from either a session or a token,
+/// carrying the caller's role in that team.
 #[derive(Debug, Clone)]
 pub struct CurrentTeam {
     pub id: i64,
     pub uuid: String,
+    /// The caller's role in this team (from the pivot for sessions, from token
+    /// abilities for bearer tokens).
+    pub role: Role,
+}
+
+impl CurrentTeam {
+    /// True when the caller may create/update/delete/manage in this team.
+    pub fn is_admin(&self) -> bool {
+        self.role.is_admin()
+    }
 }
 
 impl FromRequestParts<AppState> for CurrentTeam {
@@ -177,7 +225,8 @@ impl FromRequestParts<AppState> for CurrentTeam {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let team_id = authenticate(state, &parts.headers).await?.team_id();
+        let principal = authenticate(state, &parts.headers).await?;
+        let (team_id, role) = resolve_team_role(state, &principal).await?;
         let team = TeamRepo::new(state.pool.clone())
             .get_by_id(team_id)
             .await?
@@ -185,6 +234,34 @@ impl FromRequestParts<AppState> for CurrentTeam {
         Ok(CurrentTeam {
             id: team.id,
             uuid: team.uuid,
+            role,
         })
+    }
+}
+
+/// Guard extractor for mutating routes: succeeds only when the caller is an
+/// admin or owner of the active team (write-capable tokens qualify). Rejects
+/// with `403 Missing required team role.` otherwise. Parity with Coolify's
+/// `EnsureTokenBelongsToCurrentTeamMember` + the admin-only team policies.
+#[derive(Debug, Clone)]
+pub struct RequireAdmin {
+    pub team: CurrentTeam,
+}
+
+impl FromRequestParts<AppState> for RequireAdmin {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let team = CurrentTeam::from_request_parts(parts, state).await?;
+        if team.is_admin() {
+            Ok(RequireAdmin { team })
+        } else {
+            Err(ApiError::Forbidden(
+                "Missing required team role.".to_string(),
+            ))
+        }
     }
 }

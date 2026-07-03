@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 use rustify_db::repos::{KeyRepo, NewServer, Server, ServerRepo};
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -129,6 +129,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<ServerCreate>,
 ) -> ApiResult<Response> {
     let private_key_id = key_id_for(&state, &team, &body.private_key_uuid).await?;
@@ -170,6 +171,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ServerUpdate>,
 ) -> ApiResult<Json<ServerDto>> {
@@ -201,6 +203,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     owned(&state, &team, &uuid).await?;
@@ -265,6 +268,7 @@ pub async fn get_proxy(
 pub async fn update_proxy(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<ProxyConfigUpdate>,
 ) -> ApiResult<Json<ProxyConfig>> {

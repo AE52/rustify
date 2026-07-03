@@ -15,7 +15,7 @@ use rustify_jobs::JobQueue;
 use crate::routes::{
     applications, auth, backups, databases, deployments, github_apps, health, keys, notifications,
     previews, projects, s3_storages, scheduled_tasks, servers, service_templates, services,
-    settings, tokens, webhooks,
+    settings, teams, tokens, webhooks,
 };
 use crate::{embed, ws};
 
@@ -185,6 +185,22 @@ pub struct AppState {
         tokens::list,
         tokens::create,
         tokens::delete,
+        teams::list,
+        teams::current,
+        teams::current_members,
+        teams::get,
+        teams::members,
+        teams::create,
+        teams::update,
+        teams::delete,
+        teams::set_member_role,
+        teams::remove_member,
+        teams::create_invitation,
+        teams::list_invitations,
+        teams::delete_invitation,
+        teams::get_invitation,
+        teams::accept_invitation,
+        teams::switch_team,
     ),
     components(schemas(
         crate::error::ApiErrorBody,
@@ -257,6 +273,14 @@ pub struct AppState {
         tokens::ApiTokenDto,
         tokens::ApiTokenCreate,
         tokens::ApiTokenCreated,
+        teams::TeamDto,
+        teams::MemberDto,
+        teams::InvitationDto,
+        teams::InvitationInfo,
+        teams::TeamCreate,
+        teams::TeamUpdate,
+        teams::RoleUpdate,
+        teams::InvitationCreate,
     )),
     tags(
         (name = "health", description = "Liveness"),
@@ -276,6 +300,7 @@ pub struct AppState {
         (name = "settings", description = "Instance settings"),
         (name = "notifications", description = "Notification channels and settings"),
         (name = "api-tokens", description = "API tokens"),
+        (name = "teams", description = "Teams, members, roles and invitations"),
     )
 )]
 pub struct ApiDoc;
@@ -530,6 +555,30 @@ fn api_router() -> Router<AppState> {
         .route(
             "/api/v1/api-tokens/{uuid}",
             axum::routing::delete(tokens::delete),
+        )
+        // teams
+        .route("/api/v1/teams", get(teams::list).post(teams::create))
+        .route("/api/v1/teams/current", get(teams::current))
+        .route("/api/v1/teams/current/members", get(teams::current_members))
+        .route(
+            "/api/v1/teams/{id}",
+            get(teams::get).patch(teams::update).delete(teams::delete),
+        )
+        .route("/api/v1/teams/{id}/members", get(teams::members))
+        .route(
+            "/api/v1/teams/{id}/members/{user_uuid}",
+            patch(teams::set_member_role).delete(teams::remove_member),
+        )
+        .route(
+            "/api/v1/teams/{id}/invitations",
+            get(teams::list_invitations).post(teams::create_invitation),
+        )
+        .route("/api/v1/teams/{id}/switch", post(teams::switch_team))
+        .route(
+            "/api/v1/invitations/{uuid}",
+            get(teams::get_invitation)
+                .post(teams::accept_invitation)
+                .delete(teams::delete_invitation),
         )
 }
 

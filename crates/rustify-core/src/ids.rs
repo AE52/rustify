@@ -5,6 +5,12 @@ pub fn new_uuid() -> String {
     cuid2::create_id()
 }
 
+/// Generate a 32-char CUID2 for team invitations (parity with Coolify's
+/// `new Cuid2(32)` in `app/Livewire/Team/InviteLink.php`).
+pub fn new_invitation_uuid() -> String {
+    cuid2::CuidConstructor::new().with_length(32).create_id()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

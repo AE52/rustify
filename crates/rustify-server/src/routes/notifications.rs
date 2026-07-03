@@ -15,7 +15,7 @@ use rustify_core::notify::Channel;
 use rustify_db::repos::{NotificationSettings, NotificationSettingsPatch, NotificationsRepo};
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 use crate::notify;
 
@@ -192,6 +192,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<NotificationSettingsUpdate>,
 ) -> ApiResult<Json<NotificationSettingsDto>> {
     let updated = NotificationsRepo::new(state.pool.clone())

@@ -19,7 +19,7 @@ use rustify_db::repos::{
 };
 
 use crate::app::AppState;
-use crate::auth::CurrentTeam;
+use crate::auth::{CurrentTeam, RequireAdmin};
 use crate::error::{ApiError, ApiResult};
 
 // ----- DTOs ---------------------------------------------------------------
@@ -179,6 +179,7 @@ pub async fn list(
 pub async fn create(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Json(body): Json<DatabaseCreate>,
 ) -> ApiResult<Response> {
     let engine = DatabaseEngine::parse(&body.engine)
@@ -253,6 +254,7 @@ pub async fn get(
 pub async fn update(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
     Json(body): Json<DatabaseUpdate>,
 ) -> ApiResult<Json<DatabaseDto>> {
@@ -286,6 +288,7 @@ pub async fn update(
 pub async fn delete(
     State(state): State<AppState>,
     team: CurrentTeam,
+    _guard: RequireAdmin,
     Path(uuid): Path<String>,
 ) -> ApiResult<StatusCode> {
     resolve(&state, &team, &uuid).await?;
