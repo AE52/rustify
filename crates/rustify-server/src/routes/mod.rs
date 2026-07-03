@@ -5,6 +5,7 @@ pub mod auth;
 pub mod backups;
 pub mod databases;
 pub mod deployments;
+pub mod github_apps;
 pub mod health;
 pub mod keys;
 pub mod projects;

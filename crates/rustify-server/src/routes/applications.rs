@@ -11,8 +11,9 @@ use utoipa::ToSchema;
 
 use rustify_core::exec::{CommandExecutor, ExecError, ExecOpts, ServerConn};
 use rustify_db::repos::{
-    Application, ApplicationPatch, ApplicationRepo, DeploymentRepo, EnvVar, EnvVarRepo, KeyRepo,
-    NewApplication, NewDeployment, NewEnvVar, ProjectRepo, Server, ServerRepo,
+    Application, ApplicationPatch, ApplicationRepo, DeploymentRepo, EnvVar, EnvVarRepo,
+    GithubAppRepo, KeyRepo, NewApplication, NewDeployment, NewEnvVar, ProjectRepo, Server,
+    ServerRepo,
 };
 
 use crate::app::AppState;
@@ -91,6 +92,15 @@ pub struct ApplicationCreate {
     pub install_command: Option<String>,
     pub build_command: Option<String>,
     pub start_command: Option<String>,
+    /// Git source discriminator: `github_app` to deploy a private repo via a
+    /// GitHub App source. Omit for a public/`git@`/`file://` clone.
+    pub source: Option<String>,
+    /// uuid of the GitHub App source (required when `source = "github_app"`).
+    pub github_app_uuid: Option<String>,
+    /// Informational flag for a GitHub App source (private vs public repo).
+    pub is_private: Option<bool>,
+    /// uuid of a private key to clone over SSH as a raw deploy key.
+    pub private_key_uuid: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize, ToSchema)]
@@ -350,9 +360,40 @@ pub async fn create(
     team: CurrentTeam,
     Json(body): Json<ApplicationCreate>,
 ) -> ApiResult<Response> {
-    validate_git(&body.git_repository)?;
+    let is_github_source = body.source.as_deref() == Some("github_app");
+    // A GitHub App source stores `owner/repo`, not a URL, so the URL scheme
+    // validation only applies to the public/deploy-key clone paths.
+    if !is_github_source {
+        validate_git(&body.git_repository)?;
+    } else if body.github_app_uuid.is_none() {
+        return Err(ApiError::Validation(
+            "github_app_uuid is required when source is github_app".into(),
+        ));
+    }
     let build_pack = body.build_pack.clone().unwrap_or_else(|| "nixpacks".into());
     validate_build_pack(&build_pack)?;
+
+    // Resolve the git source (team-scoped) before creating the row.
+    let mut source_type: Option<&str> = None;
+    let mut source_id: Option<i64> = None;
+    let mut private_key_id: Option<i64> = None;
+    if is_github_source {
+        let uuid = body.github_app_uuid.as_deref().unwrap_or_default();
+        let gh = GithubAppRepo::new(state.pool.clone())
+            .get_by_uuid(uuid)
+            .await?
+            .filter(|g| g.team_id == team.id)
+            .ok_or_else(|| ApiError::Validation("unknown github_app_uuid".into()))?;
+        source_type = Some("github_app");
+        source_id = Some(gh.id);
+    } else if let Some(key_uuid) = &body.private_key_uuid {
+        let key = KeyRepo::new(state.pool.clone())
+            .get_by_uuid(key_uuid)
+            .await?
+            .filter(|k| k.team_id == team.id)
+            .ok_or_else(|| ApiError::Validation("unknown private_key_uuid".into()))?;
+        private_key_id = Some(key.id);
+    }
 
     let projects = ProjectRepo::new(state.pool.clone());
     let project = projects
@@ -388,6 +429,13 @@ pub async fn create(
             fqdn: body.fqdn.clone(),
         })
         .await?;
+
+    // Wire the git source (github_app / deploy key) if one was supplied.
+    if source_type.is_some() || private_key_id.is_some() {
+        ApplicationRepo::new(state.pool.clone())
+            .set_source(app.id, source_type, source_id, private_key_id)
+            .await?;
+    }
 
     // Apply any optional build-config fields the create body carried.
     let patch = ApplicationPatch {
