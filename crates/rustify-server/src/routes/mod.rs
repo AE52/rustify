@@ -2,6 +2,7 @@
 
 pub mod applications;
 pub mod auth;
+pub mod databases;
 pub mod deployments;
 pub mod health;
 pub mod keys;
