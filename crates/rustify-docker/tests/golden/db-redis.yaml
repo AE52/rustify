@@ -1,0 +1,39 @@
+# generated_by rustify_docker::db_compose::generate_database_compose
+# coolify_ref app/Actions/Database/StartRedis.php:70-105 (services), :279 buildStartCommand (command), healthCheckConfiguration (healthcheck)
+# do not edit by hand
+
+services:
+  db-uuid:
+    image: redis:7.2
+    container_name: db-uuid
+    restart: unless-stopped
+    networks:
+    - rustify
+    environment:
+    - REDIS_PASSWORD=SECRETPW
+    - REDIS_USERNAME=postgres
+    command: redis-server --requirepass SECRETPW --appendonly yes
+    labels:
+    - rustify.managed=true
+    - rustify.type=database
+    - rustify.databaseUuid=db-uuid
+    - rustify.database.subType=standalone-redis
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - redis-cli
+      - ping
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    volumes:
+    - redis-data:/data
+networks:
+  rustify:
+    external: true
+    attachable: true
+    name: rustify
+volumes:
+  redis-data:
+    external: false

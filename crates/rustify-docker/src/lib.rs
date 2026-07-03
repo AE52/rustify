@@ -6,11 +6,16 @@
 
 pub mod build_command;
 pub mod compose;
+pub mod db_compose;
 pub mod inspect;
 pub mod labels;
 
 pub use build_command::BuildCommand;
 pub use compose::{AppComposeInput, HealthCheck, generate_compose};
+pub use db_compose::{
+    DatabaseComposeInput, generate_database_compose, generate_db_proxy_compose,
+    generate_db_proxy_nginx_conf,
+};
 pub use inspect::{ContainerHealth, ManagedContainer, parse_containers, parse_health};
 pub use labels::traefik_labels;
 

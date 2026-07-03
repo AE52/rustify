@@ -1,0 +1,45 @@
+# generated_by rustify_docker::db_compose::generate_database_compose
+# coolify_ref app/Actions/Database/StartPostgresql.php:100-131 (services), :257-283 (env), :110 (healthcheck)
+# do not edit by hand
+
+services:
+  db-uuid:
+    image: postgres:16-alpine
+    container_name: db-uuid
+    restart: unless-stopped
+    networks:
+    - rustify
+    environment:
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=SECRETPW
+    - POSTGRES_DB=postgres
+    - PGUSER=postgres
+    labels:
+    - rustify.managed=true
+    - rustify.type=database
+    - rustify.databaseUuid=db-uuid
+    - rustify.database.subType=standalone-postgresql
+    healthcheck:
+      test:
+      - CMD
+      - psql
+      - -U
+      - postgres
+      - -d
+      - postgres
+      - -c
+      - SELECT 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    volumes:
+    - postgres-data:/var/lib/postgresql/data
+networks:
+  rustify:
+    external: true
+    attachable: true
+    name: rustify
+volumes:
+  postgres-data:
+    external: false

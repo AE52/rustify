@@ -18,7 +18,10 @@ use rustify_core::CommandExecutor;
 use rustify_db::pool::MIGRATOR;
 use rustify_db::repos::seed_default;
 use rustify_deploy::admission::DEPLOY_JOB_KIND;
-use rustify_deploy::{DeployEngineDeps, DeployJobHandler, ServerSetupHandler, status_sync_task};
+use rustify_deploy::{
+    DeployEngineDeps, DeployJobHandler, ServerSetupHandler, StartDatabaseHandler,
+    StopDatabaseHandler, status_sync_task,
+};
 use rustify_jobs::{JobQueue, JobRegistry, Scheduler};
 use rustify_server::app::{AppState, Config};
 use rustify_server::build_router;
@@ -72,6 +75,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     registry.register(
         "server_validate",
         Arc::new(ServerSetupHandler::new(deps.clone())),
+    );
+    registry.register(
+        "database_start",
+        Arc::new(StartDatabaseHandler::new(deps.clone())),
+    );
+    registry.register(
+        "database_stop",
+        Arc::new(StopDatabaseHandler::new(deps.clone())),
     );
     let worker_handle = {
         let queue = queue.clone();

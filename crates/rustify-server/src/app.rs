@@ -13,7 +13,7 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, deployments, health, keys, projects, servers, settings, tokens,
+    applications, auth, databases, deployments, health, keys, projects, servers, settings, tokens,
 };
 use crate::{embed, ws};
 
@@ -124,6 +124,14 @@ pub struct AppState {
         deployments::list,
         deployments::get,
         deployments::cancel,
+        databases::list,
+        databases::create,
+        databases::get,
+        databases::update,
+        databases::delete,
+        databases::start,
+        databases::stop,
+        databases::restart,
         settings::get,
         settings::update,
         tokens::list,
@@ -163,6 +171,9 @@ pub struct AppState {
         deployments::DeploymentDto,
         deployments::LogLineDto,
         deployments::DeploymentDetailDto,
+        databases::DatabaseDto,
+        databases::DatabaseCreate,
+        databases::DatabaseUpdate,
         settings::InstanceSettingsDto,
         settings::InstanceSettingsUpdate,
         tokens::ApiTokenDto,
@@ -177,6 +188,7 @@ pub struct AppState {
         (name = "projects", description = "Projects and environments"),
         (name = "applications", description = "Applications, deploys, env vars, logs"),
         (name = "deployments", description = "Deployments"),
+        (name = "databases", description = "Standalone databases"),
         (name = "settings", description = "Instance settings"),
         (name = "api-tokens", description = "API tokens"),
     )
@@ -268,6 +280,20 @@ fn api_router() -> Router<AppState> {
             "/api/v1/applications/{uuid}/envs/{env_uuid}",
             patch(applications::update_env).delete(applications::delete_env),
         )
+        // databases
+        .route(
+            "/api/v1/databases",
+            get(databases::list).post(databases::create),
+        )
+        .route(
+            "/api/v1/databases/{uuid}",
+            get(databases::get)
+                .patch(databases::update)
+                .delete(databases::delete),
+        )
+        .route("/api/v1/databases/{uuid}/start", post(databases::start))
+        .route("/api/v1/databases/{uuid}/stop", post(databases::stop))
+        .route("/api/v1/databases/{uuid}/restart", post(databases::restart))
         // deployments
         .route("/api/v1/deployments", get(deployments::list))
         .route("/api/v1/deployments/{uuid}", get(deployments::get))
