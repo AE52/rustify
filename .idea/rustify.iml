@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-db/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-db/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-deploy/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-deploy/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-docker/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-docker/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-jobs/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-jobs/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-proxy/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-proxy/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-server/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-server/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-ssh/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/rustify-ssh/tests" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

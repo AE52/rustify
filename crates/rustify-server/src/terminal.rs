@@ -647,6 +647,11 @@ async fn build_and_spawn(
     let key_path = rustify_ssh::keys::materialize(&key.uuid, &pem, &state.config.ssh_key_dir)
         .map_err(|e| e.to_string())?;
 
+    let proxy_command = settings
+        .as_ref()
+        .filter(|s| s.is_cloudflare_tunnel)
+        .map(|_| rustify_ssh::command::CLOUDFLARED_SSH_PROXY_COMMAND.to_string());
+
     let conn = ServerConn {
         uuid: server.uuid.clone(),
         host: server.ip.clone(),
@@ -654,6 +659,7 @@ async fn build_and_spawn(
         user: server.ssh_user.clone(),
         key_path,
         connection_timeout_secs,
+        proxy_command,
     };
     let non_root = server.ssh_user != "root";
 
@@ -703,6 +709,7 @@ mod tests {
             user: "root".into(),
             key_path: PathBuf::from("/keys/ssh_key@k1"),
             connection_timeout_secs: 10,
+            proxy_command: None,
         }
     }
 
