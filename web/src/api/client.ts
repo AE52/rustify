@@ -68,6 +68,29 @@ export type NotificationTestResponse = Schemas['TestResponse']
 export type Preview = Schemas['PreviewDto']
 export type PreviewRedeployResponse = Schemas['PreviewRedeployResponse']
 
+// ----- Phase 4 resources -------------------------------------------------
+export type Team = Schemas['TeamDto']
+export type TeamMember = Schemas['MemberDto']
+export type TeamCreate = Schemas['TeamCreate']
+export type TeamUpdate = Schemas['TeamUpdate']
+export type TeamInvitation = Schemas['InvitationDto']
+export type InvitationInfo = Schemas['InvitationInfo']
+export type InvitationCreate = Schemas['InvitationCreate']
+export type RoleUpdate = Schemas['RoleUpdate']
+/** Team roles (§5); mirrors the server's `Role` string. */
+export type Role = 'owner' | 'admin' | 'member'
+
+export type CloudToken = Schemas['CloudTokenDto']
+export type CloudTokenCreate = Schemas['CloudTokenCreate']
+export type HetznerProvision = Schemas['HetznerProvision']
+export type HetznerProvisionResponse = Schemas['HetznerProvisionResponse']
+
+export type ServerSettings = Schemas['ServerSettingsDto']
+export type ServerSettingsUpdate = Schemas['ServerSettingsUpdate']
+
+/** A single metrics sample: `[unix_time_seconds, value]` (contract C5). */
+export type MetricPoint = [number, number]
+
 const BASE = '/api/v1'
 
 /** Error envelope per C5: `{"code": "...", "message": "..."}`. */

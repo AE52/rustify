@@ -14,8 +14,8 @@ use rustify_jobs::JobQueue;
 
 use crate::routes::{
     applications, auth, backups, cloud, databases, deployments, github_apps, health, keys, metrics,
-    notifications, previews, projects, s3_storages, scheduled_tasks, servers, service_templates,
-    services, settings, teams, tokens, webhooks,
+    notifications, previews, projects, s3_storages, scheduled_tasks, server_settings, servers,
+    service_templates, services, settings, teams, tokens, webhooks,
 };
 use crate::{embed, terminal, ws};
 
@@ -107,6 +107,8 @@ pub struct AppState {
         metrics::container_metrics,
         servers::cloudflared_enable,
         servers::cloudflared_disable,
+        server_settings::get_settings,
+        server_settings::update_settings,
         cloud::list_tokens,
         cloud::create_token,
         cloud::delete_token,
@@ -230,6 +232,8 @@ pub struct AppState {
         servers::ProxyConfigUpdate,
         servers::ValidateResponse,
         servers::CloudflaredEnable,
+        server_settings::ServerSettingsDto,
+        server_settings::ServerSettingsUpdate,
         cloud::CloudTokenDto,
         cloud::CloudTokenCreate,
         cloud::HetznerProvision,
@@ -376,6 +380,10 @@ fn api_router() -> Router<AppState> {
         .route(
             "/api/v1/servers/{uuid}/cloudflared",
             post(servers::cloudflared_enable).delete(servers::cloudflared_disable),
+        )
+        .route(
+            "/api/v1/servers/{uuid}/settings",
+            get(server_settings::get_settings).patch(server_settings::update_settings),
         )
         // cloud provider tokens + Hetzner provisioning
         .route(

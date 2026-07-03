@@ -74,6 +74,9 @@ export default function Dashboard() {
     <div className="flex flex-col gap-10">
       <div className="flex items-center justify-between">
         <PageTitle>Dashboard</PageTitle>
+        <Link to="/servers/new" className={btnPrimary}>
+          New server
+        </Link>
       </div>
 
       {empty && (

@@ -6,6 +6,8 @@ import { ws } from '../../api/ws'
 import { ConfirmDanger } from '../../components/ConfirmDanger'
 import { StatusBadge } from '../../components/StatusBadge'
 import { Terminal } from '../../components/Terminal'
+import { MetricsPanel } from '../../components/MetricsPanel'
+import { ServerSettingsTab } from '../../components/ServerSettingsTab'
 import { hostTarget } from '../../lib/terminal'
 import {
   btnGhost,
@@ -19,7 +21,7 @@ import {
   selectCls,
 } from '../../components/ui'
 
-type Tab = 'general' | 'proxy' | 'terminal'
+type Tab = 'general' | 'proxy' | 'metrics' | 'settings' | 'terminal'
 
 function GeneralTab({ server }: { server: Server }) {
   const [name, setName] = useState(server.name)
@@ -277,7 +279,7 @@ export default function ServerPage() {
       </div>
 
       <div className="flex gap-1 border-b border-zinc-800 text-sm">
-        {(['general', 'proxy', 'terminal'] as const).map((t) => (
+        {(['general', 'proxy', 'metrics', 'settings', 'terminal'] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -297,6 +299,18 @@ export default function ServerPage() {
         <GeneralTab server={s} />
       ) : tab === 'proxy' ? (
         <ProxyTab serverUuid={uuid} />
+      ) : tab === 'metrics' ? (
+        <MetricsPanel
+          resource="servers"
+          uuid={uuid}
+          specs={[
+            { metric: 'cpu', label: 'CPU', percent: true },
+            { metric: 'memory', label: 'Memory', percent: true },
+            { metric: 'disk', label: 'Disk', percent: true },
+          ]}
+        />
+      ) : tab === 'settings' ? (
+        <ServerSettingsTab serverUuid={uuid} />
       ) : (
         <section className="flex flex-col gap-3">
           <SectionTitle>Terminal</SectionTitle>

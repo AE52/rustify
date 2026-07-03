@@ -15,6 +15,7 @@ pub mod previews;
 pub mod projects;
 pub mod s3_storages;
 pub mod scheduled_tasks;
+pub mod server_settings;
 pub mod servers;
 pub mod service_templates;
 pub mod services;

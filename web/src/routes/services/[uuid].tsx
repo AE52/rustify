@@ -9,6 +9,7 @@ import {
 } from '../../api/client'
 import { ws } from '../../api/ws'
 import { ConfirmDanger } from '../../components/ConfirmDanger'
+import { ContainerTerminalTab } from '../../components/ContainerTerminalTab'
 import { ScheduledTasks } from '../../components/ScheduledTasks'
 import { StatusBadge } from '../../components/StatusBadge'
 import {
@@ -20,7 +21,7 @@ import {
   SectionTitle,
 } from '../../components/ui'
 
-type Tab = 'applications' | 'tasks' | 'danger'
+type Tab = 'applications' | 'tasks' | 'terminal' | 'danger'
 
 function fqdnUrl(fqdn: string): string {
   if (fqdn.startsWith('http://') || fqdn.startsWith('https://')) return fqdn
@@ -184,6 +185,7 @@ export default function ServicePage() {
           [
             ['applications', 'Applications'],
             ['tasks', 'Scheduled tasks'],
+            ['terminal', 'Terminal'],
             ['danger', 'Danger'],
           ] as const
         ).map(([t, label]) => (
@@ -204,6 +206,9 @@ export default function ServicePage() {
 
       {tab === 'applications' && <ApplicationsTab service={s} />}
       {tab === 'tasks' && <ScheduledTasks resource="services" uuid={uuid} />}
+      {tab === 'terminal' && (
+        <ContainerTerminalTab serverUuid={s.server_uuid} placeholder={`${s.uuid}-…`} />
+      )}
       {tab === 'danger' && (
         <section className="max-w-2xl">
           <SectionTitle>Danger zone</SectionTitle>

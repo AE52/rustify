@@ -11,6 +11,8 @@ import {
 import { ws } from '../../api/ws'
 import { connectionStrings, engineLabel } from '../../lib/engines'
 import { ConfirmDanger } from '../../components/ConfirmDanger'
+import { ContainerTerminalTab } from '../../components/ContainerTerminalTab'
+import { MetricsPanel } from '../../components/MetricsPanel'
 import { StatusBadge } from '../../components/StatusBadge'
 import {
   btnGhost,
@@ -24,7 +26,7 @@ import {
   selectCls,
 } from '../../components/ui'
 
-type Tab = 'general' | 'backups' | 'danger'
+type Tab = 'general' | 'backups' | 'metrics' | 'terminal' | 'danger'
 
 // ----- General ------------------------------------------------------------
 
@@ -425,7 +427,7 @@ export default function DatabasePage() {
       <ErrorNote error={lifecycle.error} />
 
       <nav className="flex gap-1 border-b border-zinc-800 text-sm">
-        {(['general', 'backups', 'danger'] as const).map((t) => (
+        {(['general', 'backups', 'metrics', 'terminal', 'danger'] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -443,6 +445,19 @@ export default function DatabasePage() {
 
       {tab === 'general' && <GeneralTab db={d} refetch={() => database.refetch()} />}
       {tab === 'backups' && <BackupsTab db={d} />}
+      {tab === 'metrics' && (
+        <MetricsPanel
+          resource="containers"
+          uuid={d.uuid}
+          specs={[
+            { metric: 'cpu', label: 'CPU', percent: true },
+            { metric: 'memory', label: 'Memory' },
+          ]}
+        />
+      )}
+      {tab === 'terminal' && (
+        <ContainerTerminalTab serverUuid={d.server_uuid} defaultContainer={d.uuid} placeholder={d.uuid} />
+      )}
       {tab === 'danger' && (
         <section className="max-w-2xl">
           <SectionTitle>Danger zone</SectionTitle>
