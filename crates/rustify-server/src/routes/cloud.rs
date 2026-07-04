@@ -37,8 +37,14 @@ pub struct CloudTokenDto {
 pub struct CloudTokenCreate {
     pub provider: String,
     pub name: Option<String>,
-    /// The plaintext API token — stored encrypted, never returned.
-    pub token: String,
+    /// The plaintext API token — stored encrypted, never returned. Required for
+    /// single-secret providers such as Hetzner.
+    pub token: Option<String>,
+    /// AWS access key id — required when `provider = "aws"`.
+    pub access_key_id: Option<String>,
+    /// AWS secret access key — required when `provider = "aws"`. Stored encrypted
+    /// as JSON `{access_key_id, secret_access_key}`, never returned or logged.
+    pub secret_access_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -129,11 +135,30 @@ pub async fn create_token(
     _guard: RequireAdmin,
     Json(body): Json<CloudTokenCreate>,
 ) -> ApiResult<Response> {
-    if body.token.trim().is_empty() {
-        return Err(ApiError::Validation("token must not be empty".to_string()));
-    }
+    // AWS stores an encrypted JSON blob of {access_key_id, secret_access_key};
+    // every other provider stores a single opaque token string.
+    let material = if body.provider == "aws" {
+        let access_key_id = body.access_key_id.as_deref().unwrap_or("").trim();
+        let secret_access_key = body.secret_access_key.as_deref().unwrap_or("").trim();
+        if access_key_id.is_empty() || secret_access_key.is_empty() {
+            return Err(ApiError::Validation(
+                "aws token requires access_key_id and secret_access_key".to_string(),
+            ));
+        }
+        serde_json::to_string(&crate::aws::AwsCredentials {
+            access_key_id: access_key_id.to_string(),
+            secret_access_key: secret_access_key.to_string(),
+        })
+        .map_err(|e| ApiError::Internal(e.to_string()))?
+    } else {
+        let token = body.token.as_deref().unwrap_or("").trim();
+        if token.is_empty() {
+            return Err(ApiError::Validation("token must not be empty".to_string()));
+        }
+        token.to_string()
+    };
     let token = CloudTokenRepo::new(state.pool.clone())
-        .create(team.id, &body.provider, body.name.as_deref(), &body.token)
+        .create(team.id, &body.provider, body.name.as_deref(), &material)
         .await?;
     Ok((
         StatusCode::CREATED,

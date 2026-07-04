@@ -2,6 +2,7 @@
 
 pub mod applications;
 pub mod auth;
+pub mod aws;
 pub mod backups;
 pub mod cloud;
 pub mod databases;
