@@ -9,6 +9,7 @@
 
 pub mod app;
 pub mod auth;
+pub mod aws;
 pub mod embed;
 pub mod error;
 pub mod hetzner;

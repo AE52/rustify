@@ -13,9 +13,9 @@ use rustify_core::WsEvent;
 use rustify_jobs::JobQueue;
 
 use crate::routes::{
-    applications, auth, backups, cloud, databases, deployments, github_apps, health, keys, metrics,
-    notifications, previews, projects, s3_storages, scheduled_tasks, server_settings, servers,
-    service_templates, services, settings, teams, tokens, webhooks,
+    applications, auth, aws, backups, cloud, databases, deployments, github_apps, health, keys,
+    metrics, notifications, previews, projects, s3_storages, scheduled_tasks, server_settings,
+    servers, service_templates, services, settings, teams, tokens, webhooks,
 };
 use crate::{embed, terminal, ws};
 
@@ -117,6 +117,9 @@ pub struct AppState {
         cloud::hetzner_server_types,
         cloud::hetzner_images,
         cloud::provision_hetzner,
+        aws::regions,
+        aws::instance_types,
+        aws::provision,
         projects::list,
         projects::create,
         projects::get,
@@ -239,6 +242,11 @@ pub struct AppState {
         cloud::CloudTokenCreate,
         cloud::HetznerProvision,
         cloud::HetznerProvisionResponse,
+        aws::AwsRegionDto,
+        aws::AwsInstanceTypeDto,
+        aws::AwsProvision,
+        aws::AwsServerDto,
+        aws::AwsProvisionResponse,
         projects::ProjectDto,
         projects::EnvironmentDto,
         projects::ProjectCreate,
@@ -410,6 +418,10 @@ fn api_router() -> Router<AppState> {
             "/api/v1/servers/provision/hetzner",
             post(cloud::provision_hetzner),
         )
+        // AWS EC2 metadata + provisioning
+        .route("/api/v1/aws/regions", get(aws::regions))
+        .route("/api/v1/aws/instance-types", get(aws::instance_types))
+        .route("/api/v1/servers/provision/aws", post(aws::provision))
         // projects
         .route(
             "/api/v1/projects",

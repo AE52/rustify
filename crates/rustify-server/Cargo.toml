@@ -52,6 +52,12 @@ lettre = { version = "0.11", default-features = false, features = ["builder", "s
 # ssh child's whole process group can be signalled without any unsafe code.
 portable-pty = "0.9"
 nix = { version = "0.29", features = ["signal"] }
+# AWS EC2 provisioning (aws-provision track). Region-scoped clients are built
+# from the decrypted cloud token via static credentials — never ambient env.
+aws-config = "1.8"
+aws-credential-types = { version = "1.2", features = ["hardcoded-credentials"] }
+aws-sdk-ec2 = "1.236"
+aws-sdk-ssm = "1.113"
 
 [features]
 # End-to-end harness in tests/e2e.rs. Off by default so the normal workspace

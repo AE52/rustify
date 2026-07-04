@@ -25,6 +25,10 @@ pub struct Server {
     pub hetzner_server_status: Option<String>,
     pub ip_previous: Option<String>,
     pub cloud_provider_token_id: Option<i64>,
+    /// EC2 instance id (`i-…`) for AWS-provisioned servers (migration 0013).
+    pub aws_instance_id: Option<String>,
+    /// AWS region the instance lives in (migration 0013).
+    pub aws_region: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -51,6 +55,12 @@ pub struct ServerSettings {
     /// How many days of samples the retention prune keeps (migration 0011).
     pub metrics_history_days: i32,
     pub is_cloudflare_tunnel: bool,
+    /// Whether this server is the manager of an AWS-provisioned Docker Swarm
+    /// (migration 0013).
+    pub is_swarm_manager: bool,
+    /// Whether this server joined an AWS-provisioned Docker Swarm as a worker
+    /// (migration 0013).
+    pub is_swarm_worker: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -66,7 +76,7 @@ pub struct Destination {
 
 const SERVER_COLS: &str = "id, uuid, team_id, name, ip, port, ssh_user, private_key_id, \
      reachable, usable, validation_logs, hetzner_server_id, hetzner_server_status, ip_previous, \
-     cloud_provider_token_id, created_at, updated_at";
+     cloud_provider_token_id, aws_instance_id, aws_region, created_at, updated_at";
 
 /// Fields required to register a server.
 #[derive(Debug, Clone)]
@@ -89,6 +99,20 @@ pub struct NewHetznerServer {
     pub ssh_user: String,
     pub private_key_id: i64,
     pub hetzner_server_id: i64,
+    pub cloud_provider_token_id: i64,
+}
+
+/// Fields required to register an AWS EC2-provisioned server.
+#[derive(Debug, Clone)]
+pub struct NewAwsServer {
+    pub team_id: i64,
+    pub name: String,
+    pub ip: String,
+    pub port: i32,
+    pub ssh_user: String,
+    pub private_key_id: i64,
+    pub aws_instance_id: String,
+    pub aws_region: String,
     pub cloud_provider_token_id: i64,
 }
 
@@ -180,6 +204,95 @@ impl ServerRepo {
 
         tx.commit().await?;
         Ok(server)
+    }
+
+    /// Register an AWS EC2-provisioned server (user `ubuntu`, port 22) with its
+    /// `aws_instance_id`/`aws_region` and cloud token, together with its default
+    /// settings + destination row. The AWS twin of [`create_hetzner`].
+    pub async fn create_aws(&self, new: NewAwsServer) -> DbResult<Server> {
+        let mut tx = self.pool.begin().await?;
+        let uuid = ids::new_uuid();
+        let server = sqlx::query_as::<_, Server>(&format!(
+            "INSERT INTO servers
+               (uuid, team_id, name, ip, port, ssh_user, private_key_id,
+                aws_instance_id, aws_region, cloud_provider_token_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             RETURNING {SERVER_COLS}"
+        ))
+        .bind(&uuid)
+        .bind(new.team_id)
+        .bind(&new.name)
+        .bind(&new.ip)
+        .bind(new.port)
+        .bind(&new.ssh_user)
+        .bind(new.private_key_id)
+        .bind(&new.aws_instance_id)
+        .bind(&new.aws_region)
+        .bind(new.cloud_provider_token_id)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        sqlx::query("INSERT INTO server_settings (server_id) VALUES ($1)")
+            .bind(server.id)
+            .execute(&mut *tx)
+            .await?;
+
+        sqlx::query(
+            "INSERT INTO destinations (uuid, server_id, network) VALUES ($1, $2, 'rustify')",
+        )
+        .bind(ids::new_uuid())
+        .bind(server.id)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(server)
+    }
+
+    /// Persist a server's Docker Swarm role after cluster formation. Exactly one
+    /// of `manager`/`worker` is set true per node.
+    pub async fn set_swarm_role(
+        &self,
+        server_id: i64,
+        manager: bool,
+        worker: bool,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE server_settings
+                SET is_swarm_manager = $2, is_swarm_worker = $3, updated_at = now()
+              WHERE server_id = $1",
+        )
+        .bind(server_id)
+        .bind(manager)
+        .bind(worker)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Update the cached AWS instance state (`running`/`stopped`/…) for a server.
+    /// Stored in the shared `hetzner_server_status` column, which is a generic
+    /// cloud power-state cache reused across providers (non-destructive).
+    pub async fn set_aws_status(&self, id: i64, status: &str) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE servers SET hetzner_server_status = $2, updated_at = now() WHERE id = $1",
+        )
+        .bind(id)
+        .bind(status)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Every AWS EC2-provisioned server (`aws_instance_id IS NOT NULL`), used by
+    /// the periodic instance-state sync.
+    pub async fn aws_servers(&self) -> DbResult<Vec<Server>> {
+        let rows = sqlx::query_as::<_, Server>(&format!(
+            "SELECT {SERVER_COLS} FROM servers WHERE aws_instance_id IS NOT NULL ORDER BY id"
+        ))
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
     }
 
     /// Update the cached Hetzner power state (`running`/`off`/…) for a server.
@@ -453,7 +566,8 @@ impl ServerRepo {
                     connection_timeout, proxy_type, proxy_status, proxy_custom_config,
                     is_build_server, is_terminal_enabled, metrics_enabled,
                     metrics_refresh_rate_seconds, metrics_history_days,
-                    is_cloudflare_tunnel, created_at, updated_at
+                    is_cloudflare_tunnel, is_swarm_manager, is_swarm_worker,
+                    created_at, updated_at
              FROM server_settings WHERE server_id = $1",
         )
         .bind(server_id)

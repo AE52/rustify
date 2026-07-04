@@ -39,7 +39,9 @@ pub use projects::{Environment, Project, ProjectRepo};
 pub use scheduled_tasks::{
     NewScheduledTask, ScheduledTask, ScheduledTaskExecution, ScheduledTaskPatch, ScheduledTaskRepo,
 };
-pub use servers::{Destination, NewHetznerServer, NewServer, Server, ServerRepo, ServerSettings};
+pub use servers::{
+    Destination, NewAwsServer, NewHetznerServer, NewServer, Server, ServerRepo, ServerSettings,
+};
 pub use services::{NewService, Service, ServiceApplication, ServiceRepo};
 pub use settings::{ApiToken, InstanceSettings, Session, SettingsRepo};
 pub use teams::{

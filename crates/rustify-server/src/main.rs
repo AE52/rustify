@@ -211,6 +211,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "hetzner_status_sync",
         rustify_server::hetzner::hetzner_status_sync_task(deps.pool.clone()),
     );
+    // AWS EC2 instance-state reconciliation for provisioned servers.
+    scheduler.every(
+        HETZNER_SYNC_PERIOD,
+        "aws_status_sync",
+        rustify_server::aws::aws_status_sync_task(deps.pool.clone()),
+    );
     scheduler.every(STATUS_SYNC_PERIOD, "status_sync", status_sync_task(deps));
 
     let state = AppState {
