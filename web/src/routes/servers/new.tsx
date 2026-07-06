@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import {
   api,
+  type AwsInstanceType,
+  type AwsProvisionResponse,
+  type AwsRegion,
   type CloudToken,
   type HetznerProvisionResponse,
   type PrivateKey,
@@ -35,8 +38,11 @@ interface HetznerItem {
 
 function TokensCard() {
   const queryClient = useQueryClient()
+  const [provider, setProvider] = useState<'hetzner' | 'aws'>('hetzner')
   const [name, setName] = useState('')
   const [token, setToken] = useState('')
+  const [accessKeyId, setAccessKeyId] = useState('')
+  const [secretAccessKey, setSecretAccessKey] = useState('')
 
   const tokens = useQuery({
     queryKey: ['cloud-tokens'],
@@ -46,14 +52,26 @@ function TokensCard() {
 
   const create = useMutation({
     mutationFn: () =>
-      api.post<CloudToken>('/cloud-tokens', {
-        provider: 'hetzner',
-        name: name || null,
-        token,
-      }),
+      api.post<CloudToken>(
+        '/cloud-tokens',
+        provider === 'aws'
+          ? {
+              provider: 'aws',
+              name: name || null,
+              access_key_id: accessKeyId,
+              secret_access_key: secretAccessKey,
+            }
+          : {
+              provider: 'hetzner',
+              name: name || null,
+              token,
+            },
+      ),
     onSuccess: () => {
       setName('')
       setToken('')
+      setAccessKeyId('')
+      setSecretAccessKey('')
       invalidate()
     },
   })
@@ -62,9 +80,11 @@ function TokensCard() {
     onSuccess: invalidate,
   })
 
+  const ready = provider === 'aws' ? accessKeyId && secretAccessKey : token
+
   return (
     <section className="flex max-w-2xl flex-col gap-3">
-      <SectionTitle>Hetzner API tokens</SectionTitle>
+      <SectionTitle>Cloud provider tokens</SectionTitle>
       {tokens.data?.map((t) => (
         <div
           key={t.uuid}
@@ -89,24 +109,64 @@ function TokensCard() {
         }}
         className={`${cardCls} flex flex-wrap items-end gap-3`}
       >
+        <div className="w-32">
+          <Field label="Provider">
+            <select
+              aria-label="Token provider"
+              className={inputCls}
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as 'hetzner' | 'aws')}
+            >
+              <option value="hetzner">Hetzner</option>
+              <option value="aws">AWS</option>
+            </select>
+          </Field>
+        </div>
         <div className="w-40">
           <Field label="Label (optional)">
             <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
         </div>
-        <div className="min-w-48 flex-1">
-          <Field label="API token">
-            <input
-              type="password"
-              className={inputCls}
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="hcloud token"
-              autoComplete="off"
-            />
-          </Field>
-        </div>
-        <button type="submit" className={btnPrimary} disabled={create.isPending || !token}>
+        {provider === 'aws' ? (
+          <>
+            <div className="min-w-40 flex-1">
+              <Field label="Access key ID">
+                <input
+                  type="password"
+                  className={inputCls}
+                  value={accessKeyId}
+                  onChange={(e) => setAccessKeyId(e.target.value)}
+                  autoComplete="off"
+                />
+              </Field>
+            </div>
+            <div className="min-w-40 flex-1">
+              <Field label="Secret access key">
+                <input
+                  type="password"
+                  className={inputCls}
+                  value={secretAccessKey}
+                  onChange={(e) => setSecretAccessKey(e.target.value)}
+                  autoComplete="off"
+                />
+              </Field>
+            </div>
+          </>
+        ) : (
+          <div className="min-w-48 flex-1">
+            <Field label="API token">
+              <input
+                type="password"
+                className={inputCls}
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="hcloud token"
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+        )}
+        <button type="submit" className={btnPrimary} disabled={create.isPending || !ready}>
           {create.isPending ? 'Saving…' : 'Add token'}
         </button>
         <ErrorNote error={create.error} />
@@ -186,11 +246,13 @@ function ProvisionCard() {
           onChange={(e) => setTokenUuid(e.target.value)}
         >
           <option value="">Select a token…</option>
-          {tokens.data?.map((t) => (
-            <option key={t.uuid} value={t.uuid}>
-              {t.name || t.uuid}
-            </option>
-          ))}
+          {tokens.data
+            ?.filter((t) => t.provider === 'hetzner')
+            .map((t) => (
+              <option key={t.uuid} value={t.uuid}>
+                {t.name || t.uuid}
+              </option>
+            ))}
         </select>
       </Field>
 
@@ -275,8 +337,195 @@ function ProvisionCard() {
   )
 }
 
+// ----- AWS provision form ---------------------------------------------------
+
+function AwsProvisionCard() {
+  const navigate = useNavigate()
+  const [tokenUuid, setTokenUuid] = useState('')
+  const [name, setName] = useState('')
+  const [region, setRegion] = useState('')
+  const [instanceType, setInstanceType] = useState('')
+  const [count, setCount] = useState('1')
+  const [keyUuid, setKeyUuid] = useState('')
+
+  const tokens = useQuery({
+    queryKey: ['cloud-tokens'],
+    queryFn: () => api.get<CloudToken[]>('/cloud-tokens'),
+  })
+  const keys = useQuery({
+    queryKey: ['private-keys'],
+    queryFn: () => api.get<PrivateKey[]>('/private-keys'),
+  })
+
+  const lookupEnabled = tokenUuid !== ''
+  const regions = useQuery({
+    queryKey: ['aws', 'regions'],
+    queryFn: () => api.get<AwsRegion[]>('/aws/regions'),
+    enabled: lookupEnabled,
+  })
+  const instanceTypes = useQuery({
+    queryKey: ['aws', 'instance-types'],
+    queryFn: () => api.get<AwsInstanceType[]>('/aws/instance-types'),
+    enabled: lookupEnabled,
+  })
+
+  const nodes = Math.max(1, Number(count) || 1)
+
+  const provision = useMutation({
+    mutationFn: () =>
+      api.post<AwsProvisionResponse>('/servers/provision/aws', {
+        token_uuid: tokenUuid,
+        region,
+        instance_type: instanceType,
+        count: nodes,
+        name,
+        private_key_uuid: keyUuid || null,
+      }),
+    onSuccess: (res) => {
+      if (res.servers.length === 1) navigate(`/servers/${res.servers[0].uuid}`)
+    },
+  })
+
+  // Multi-node success: no redirect — replace the form with the cluster summary.
+  const created = provision.data
+  if (created && created.servers.length > 1) {
+    return (
+      <section className={`${cardCls} flex max-w-2xl flex-col gap-3`}>
+        <SectionTitle>Docker Swarm cluster of {created.servers.length} provisioned</SectionTitle>
+        {created.partial && (
+          <p className="text-xs text-amber-400">
+            Some nodes failed to provision — check each server below.
+          </p>
+        )}
+        <ul className="flex flex-col gap-1">
+          {created.servers.map((s) => (
+            <li key={s.uuid}>
+              <Link
+                className="text-sm text-emerald-400 hover:underline"
+                to={`/servers/${s.uuid}`}
+              >
+                {s.name} — {s.ip}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  const ready = tokenUuid && name && region && instanceType
+  const loading = regions.isFetching || instanceTypes.isFetching
+
+  return (
+    <form
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault()
+        provision.mutate()
+      }}
+      className={`${cardCls} flex max-w-2xl flex-col gap-4`}
+    >
+      <SectionTitle>Provision an AWS server</SectionTitle>
+      <Field label="AWS token">
+        <select
+          aria-label="AWS cloud token"
+          className={selectCls}
+          value={tokenUuid}
+          onChange={(e) => setTokenUuid(e.target.value)}
+        >
+          <option value="">Select a token…</option>
+          {tokens.data
+            ?.filter((t) => t.provider === 'aws')
+            .map((t) => (
+              <option key={t.uuid} value={t.uuid}>
+                {t.name || t.uuid}
+              </option>
+            ))}
+        </select>
+      </Field>
+
+      {lookupEnabled && loading && <p className="text-xs text-zinc-500">Loading AWS options…</p>}
+      <ErrorNote error={regions.error ?? instanceTypes.error} />
+
+      <Field label="Name">
+        <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Region">
+          <select
+            aria-label="Region"
+            className={selectCls}
+            value={region}
+            disabled={!lookupEnabled}
+            onChange={(e) => setRegion(e.target.value)}
+          >
+            <option value="">Select…</option>
+            {regions.data?.map((r) => (
+              <option key={r.name} value={r.name}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Instance type">
+          <select
+            aria-label="Instance type"
+            className={selectCls}
+            value={instanceType}
+            disabled={!lookupEnabled}
+            onChange={(e) => setInstanceType(e.target.value)}
+          >
+            <option value="">Select…</option>
+            {instanceTypes.data?.map((i) => (
+              <option key={i.name} value={i.name}>
+                {i.name} — {i.vcpus} vCPU / {i.mem_gb}GB
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <Field label="Nodes">
+        <input
+          aria-label="Nodes"
+          type="number"
+          min={1}
+          className={inputCls}
+          value={count}
+          onChange={(e) => setCount(e.target.value)}
+        />
+      </Field>
+      {nodes >= 2 && (
+        <p className="text-xs text-zinc-400">Docker Swarm cluster of {nodes} nodes</p>
+      )}
+      <Field label="SSH key (optional — defaults to the team's first)">
+        <select
+          className={selectCls}
+          value={keyUuid}
+          onChange={(e) => setKeyUuid(e.target.value)}
+        >
+          <option value="">Team default</option>
+          {keys.data?.map((k) => (
+            <option key={k.uuid} value={k.uuid}>
+              {k.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <ErrorNote error={provision.error} />
+      <button
+        type="submit"
+        className={`${btnPrimary} w-fit`}
+        disabled={!ready || provision.isPending}
+      >
+        {provision.isPending ? 'Provisioning…' : 'Provision server'}
+      </button>
+    </form>
+  )
+}
+
 export default function NewServerPage() {
   const navigate = useNavigate()
+  const [mode, setMode] = useState<'hetzner' | 'aws'>('hetzner')
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center gap-4">
@@ -286,11 +535,27 @@ export default function NewServerPage() {
         </button>
       </div>
       <p className="max-w-2xl text-sm text-zinc-400">
-        Provision a fresh server on Hetzner Cloud. After creation, rustify installs Docker and the
-        proxy — follow the progress on the server page.
+        Provision a fresh server on Hetzner Cloud or AWS. After creation, rustify installs Docker
+        and the proxy — follow the progress on the server page.
       </p>
       <TokensCard />
-      <ProvisionCard />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className={mode === 'hetzner' ? btnPrimary : btnGhost}
+          onClick={() => setMode('hetzner')}
+        >
+          Provision on Hetzner
+        </button>
+        <button
+          type="button"
+          className={mode === 'aws' ? btnPrimary : btnGhost}
+          onClick={() => setMode('aws')}
+        >
+          Provision on AWS
+        </button>
+      </div>
+      {mode === 'hetzner' ? <ProvisionCard /> : <AwsProvisionCard />}
     </div>
   )
 }
