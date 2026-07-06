@@ -276,6 +276,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/aws/instance-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["aws_instance_types"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/aws/regions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["aws_regions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/backups/{uuid}": {
         parameters: {
             query?: never;
@@ -922,6 +954,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/servers/provision/aws": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["provision_aws_servers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/servers/provision/hetzner": {
         parameters: {
             query?: never;
@@ -1499,6 +1547,46 @@ export interface components {
             start_command?: string | null;
             static_image?: string | null;
         };
+        AwsInstanceTypeDto: {
+            /** Format: int32 */
+            mem_gb: number;
+            name: string;
+            /** Format: int32 */
+            vcpus: number;
+        };
+        AwsProvision: {
+            /**
+             * Format: int32
+             * @description Number of instances. `1` = single node; `>= 2` = a Docker Swarm cluster.
+             */
+            count: number;
+            instance_type: string;
+            name: string;
+            /** @description SSH key to install/connect with; defaults to the team's first. */
+            private_key_uuid?: string | null;
+            region: string;
+            token_uuid: string;
+        };
+        AwsProvisionResponse: {
+            /**
+             * @description Whether some non-fatal step failed (instance without a public IP, or a
+             *     worker that failed to join) while the run still registered servers.
+             */
+            partial: boolean;
+            servers: components["schemas"]["AwsServerDto"][];
+            /** @description Whether the servers were joined into a Docker Swarm. */
+            swarm: boolean;
+        };
+        AwsRegionDto: {
+            name: string;
+        };
+        AwsServerDto: {
+            aws_instance_id?: string | null;
+            aws_region?: string | null;
+            ip: string;
+            name: string;
+            uuid: string;
+        };
         BackupCreate: {
             databases_to_backup?: string | null;
             disable_local_backup?: boolean;
@@ -1573,10 +1661,20 @@ export interface components {
             branches: unknown[];
         };
         CloudTokenCreate: {
+            /** @description AWS access key id — required when `provider = "aws"`. */
+            access_key_id?: string | null;
             name?: string | null;
             provider: string;
-            /** @description The plaintext API token — stored encrypted, never returned. */
-            token: string;
+            /**
+             * @description AWS secret access key — required when `provider = "aws"`. Stored encrypted
+             *     as JSON `{access_key_id, secret_access_key}`, never returned or logged.
+             */
+            secret_access_key?: string | null;
+            /**
+             * @description The plaintext API token — stored encrypted, never returned. Required for
+             *     single-secret providers such as Hetzner.
+             */
+            token?: string | null;
         };
         CloudTokenDto: {
             /** Format: date-time */
@@ -2930,6 +3028,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    aws_instance_types: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Curated AWS instance types */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AwsInstanceTypeDto"][];
+                };
+            };
+        };
+    };
+    aws_regions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AWS regions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AwsRegionDto"][];
                 };
             };
         };
@@ -4728,6 +4866,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ServerDto"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    provision_aws_servers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AwsProvision"];
+            };
+        };
+        responses: {
+            /** @description Servers provisioned + validation enqueued */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AwsProvisionResponse"];
+                };
+            };
+            /** @description Token or key not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
                 };
             };
             /** @description Validation error */
